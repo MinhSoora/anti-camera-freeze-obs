@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>OBS Camera Watch</title>
-<script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-websocket.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-websocket.min.js"
+        onerror="this.onerror=null;this.src='https://unpkg.com/obs-websocket-js@5.0.6/dist/obs-websocket.min.js';"></script>
 <style>
   :root{
     --bg:#0e1116;
@@ -29,11 +30,22 @@
   .wrap{max-width:780px;margin:0 auto;padding:20px 16px 60px;}
 
   header.top{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
-  header.top .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto;transition:background .2s;}
+  header.top .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto;transition:background .25s ease;}
+  header.top .dot.pulse{animation:pulseDot 1.1s ease-in-out infinite;}
   header.top h1{font-size:15px;letter-spacing:.02em;font-weight:600;margin:0;color:var(--text);}
-  header.top .sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;}
+  header.top .sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;transition:color .25s ease;}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:14px;}
+  @keyframes pulseDot{
+    0%,100%{ box-shadow:0 0 0 0 rgba(240,173,78,.55); }
+    50%{ box-shadow:0 0 0 6px rgba(240,173,78,0); }
+  }
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:14px;
+        animation:cardIn .35s ease both;}
+  .card:nth-of-type(2){animation-delay:.05s;}
+  .card:nth-of-type(3){animation-delay:.1s;}
+  @keyframes cardIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
   .card h2{font-size:13px;font-weight:600;margin:0 0 4px;color:var(--text);display:flex;align-items:center;gap:8px;}
   .card h2 span.tag{font-size:10.5px;font-weight:600;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;}
   .card .sub{font-size:12px;color:var(--muted);margin:0 0 14px;}
@@ -47,8 +59,9 @@
   input[type=text],input[type=password],input[type=number]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
     border-radius:7px;padding:10px 11px;font-size:14px;font-family:var(--mono);
+    transition:border-color .15s ease, box-shadow .15s ease;
   }
-  input:focus{outline:none;border-color:var(--accent);}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,176,230,.15);}
   input:disabled{opacity:.55;cursor:not-allowed;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
@@ -57,9 +70,12 @@
   button{
     font-family:var(--sans);font-size:13.5px;font-weight:600;cursor:pointer;
     border-radius:7px;border:1px solid var(--line);padding:10px 16px;
-    background:var(--panel-2);color:var(--text);transition:border-color .15s,background .15s;
+    background:var(--panel-2);color:var(--text);
+    transition:border-color .15s ease,background .15s ease,transform .08s ease,opacity .15s ease;
+    position:relative;
   }
   button:hover:not(:disabled){border-color:#3a4353;}
+  button:active:not(:disabled){transform:scale(.96);}
   button:disabled{opacity:.4;cursor:not-allowed;}
   button.primary{background:var(--accent);border-color:var(--accent);color:#08131a;}
   button.primary:hover:not(:disabled){filter:brightness(1.08);}
@@ -67,36 +83,72 @@
   button.danger:hover:not(:disabled){border-color:var(--bad);}
   .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
 
+  button.loading{color:transparent !important;pointer-events:none;}
+  button.loading::after{
+    content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;
+    border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#08131a;
+    animation:spin .7s linear infinite;
+  }
+  button.primary.loading::after{border:2px solid rgba(8,19,26,.25);border-top-color:#08131a;}
+  button:not(.primary).loading::after{border:2px solid rgba(223,228,236,.25);border-top-color:var(--text);}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
   .err{background:var(--bad-dim);border:1px solid #6b2c28;color:#ffb3af;padding:10px 12px;border-radius:7px;font-size:12.5px;margin-top:12px;display:none;line-height:1.5;}
-  .err.show{display:block;}
+  .err.show{display:block;animation:shakeIn .3s ease;}
+  @keyframes shakeIn{
+    0%{ transform:translateX(0); opacity:0; }
+    25%{ transform:translateX(-4px); }
+    50%{ transform:translateX(3px); }
+    75%{ transform:translateX(-2px); }
+    100%{ transform:translateX(0); opacity:1; }
+  }
 
   .statusHero{display:flex;align-items:center;gap:16px;padding:2px 2px 18px;}
   .statusHero .badge{
     width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;
-    font-size:24px;flex:0 0 auto;
+    font-size:24px;flex:0 0 auto;transition:background .3s ease,color .3s ease;
+  }
+  .statusHero .badge.pop{animation:badgePop .4s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes badgePop{
+    0%{ transform:scale(1); }
+    35%{ transform:scale(1.18); }
+    100%{ transform:scale(1); }
   }
   .statusHero .info .label{font-size:12px;color:var(--muted);margin-bottom:3px;}
-  .statusHero .info .value{font-size:17px;font-weight:700;}
+  .statusHero .info .value{font-size:17px;font-weight:700;transition:color .2s ease;}
 
   .badge.ok{background:var(--ok-dim);color:var(--ok);}
   .badge.warn{background:var(--warn-dim);color:var(--warn);}
   .badge.bad{background:var(--bad-dim);color:var(--bad);}
   .badge.idle{background:var(--panel-2);color:var(--muted);}
+  .badge.reloading{background:var(--warn-dim);color:var(--warn);animation:spin 1s linear infinite;}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 13px;}
+  .metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 13px;transition:border-color .2s ease;}
   .metric .k{font-size:11px;color:var(--muted);margin-bottom:5px;}
-  .metric .v{font-size:13.5px;font-family:var(--mono);word-break:break-word;}
+  .metric .v{font-size:13.5px;font-family:var(--mono);word-break:break-word;transition:color .2s ease;}
   .metric .v.ok{color:var(--ok);}
   .metric .v.warn{color:var(--warn);}
   .metric .v.bad{color:var(--bad);}
+  .metric.flash{animation:flashBg .5s ease;}
+  @keyframes flashBg{
+    0%{ background:var(--panel-2); }
+    30%{ background:#22303a; }
+    100%{ background:var(--panel-2); }
+  }
 
-  .checkline{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--text);}
-  .checkline input{width:16px;height:16px;}
+  .checkline{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--text);}
+  .switch{position:relative;width:38px;height:22px;flex:0 0 auto;}
+  .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+  .switch .track{position:absolute;inset:0;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;transition:background .2s ease,border-color .2s ease;}
+  .switch .thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .2s cubic-bezier(.4,0,.2,1),background .2s ease;}
+  .switch input:checked ~ .track{background:var(--ok-dim);border-color:var(--ok);}
+  .switch input:checked ~ .thumb{transform:translateX(16px);background:var(--ok);}
 
   .log{background:#0a0d12;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
     height:190px;overflow-y:auto;font-family:var(--mono);font-size:11.5px;line-height:1.65;}
-  .log .l{color:var(--muted);white-space:pre-wrap;word-break:break-word;}
+  .log .l{color:var(--muted);white-space:pre-wrap;word-break:break-word;animation:logIn .25s ease both;}
+  @keyframes logIn{ from{ opacity:0; transform:translateY(-3px);} to{ opacity:1; transform:translateY(0);} }
   .log .l .t{color:#4a5468;}
   .log .l.warn{color:var(--warn);}
   .log .l.bad{color:var(--bad);}
@@ -104,6 +156,10 @@
 
   .footNote{font-size:11px;color:#4a5468;text-align:center;margin-top:18px;line-height:1.6;}
   a{color:var(--accent);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -181,26 +237,30 @@
     </div>
 
     <div class="grid">
-      <div class="metric">
+      <div class="metric" id="mObsBox">
         <div class="k">OBS WebSocket</div>
         <div class="v" id="mObs">Chưa kết nối</div>
       </div>
-      <div class="metric">
+      <div class="metric" id="mCheckBox">
         <div class="k">Kiểm tra lần cuối</div>
         <div class="v" id="mLastCheck">-</div>
       </div>
-      <div class="metric">
+      <div class="metric" id="mReloadTimeBox">
         <div class="k">Reload gần nhất</div>
         <div class="v" id="mLastReload">chưa reload</div>
       </div>
-      <div class="metric">
+      <div class="metric" id="mReloadCountBox">
         <div class="k">Số lần reload</div>
         <div class="v" id="mReloadCount">0</div>
       </div>
     </div>
 
     <label class="checkline">
-      <input type="checkbox" id="chkAutoReload">
+      <span class="switch">
+        <input type="checkbox" id="chkAutoReload">
+        <span class="track"></span>
+        <span class="thumb"></span>
+      </span>
       Tự động reload khi phát hiện lỗi camera
     </label>
 
@@ -226,6 +286,15 @@
 <script>
 (function(){
   "use strict";
+
+  /* ============================================================
+     Toàn bộ phần dưới đây được thiết kế để KHÔNG BAO GIỜ để một
+     lỗi (vd. thư viện obs-websocket-js tải CDN thất bại) làm
+     dừng cả script — vì nếu dừng ở đầu, mọi nút bấm sẽ không
+     phản ứng gì (đây chính là lỗi trước đó). Việc khởi tạo
+     OBSWebSocket được hoãn lại tới lúc thực sự bấm "Kết nối",
+     và luôn được bọc trong try/catch.
+     ============================================================ */
 
   /* ---------------- storage ---------------- */
   const STORAGE_KEY = "obsCamMonitorConfig_v2";
@@ -253,7 +322,7 @@
   let cfg = loadCfg();
 
   /* ---------------- dom refs ---------------- */
-  const $ = (id) => document.getElementById(id);
+  function $(id){ return document.getElementById(id); }
 
   const headerDot = $("headerDot"), headerSub = $("headerSub");
   const cfgIp = $("cfgIp"), cfgPort = $("cfgPort"), cfgPass = $("cfgPass"), cfgSource = $("cfgSource");
@@ -265,6 +334,7 @@
   const sourceNameLabel = $("sourceNameLabel");
   const camBadge = $("camBadge"), camStatusText = $("camStatusText");
   const mObs = $("mObs"), mLastCheck = $("mLastCheck"), mLastReload = $("mLastReload"), mReloadCount = $("mReloadCount");
+  const mObsBox = $("mObsBox"), mCheckBox = $("mCheckBox"), mReloadTimeBox = $("mReloadTimeBox"), mReloadCountBox = $("mReloadCountBox");
   const chkAutoReload = $("chkAutoReload");
   const btnCheckNow = $("btnCheckNow"), btnReloadNow = $("btnReloadNow");
   const dashErr = $("dashErr");
@@ -294,7 +364,7 @@
   }
 
   /* ---------------- state ---------------- */
-  const obs = new (window.OBSWebSocket && window.OBSWebSocket.default ? window.OBSWebSocket.default : window.OBSWebSocket)();
+  let obs = null; // created lazily by ensureObs()
 
   let state = {
     connected:false,
@@ -318,6 +388,33 @@
   const RECONNECT_DELAY_MS = 6000;
   const RELOAD_SETTLE_MS = 4000;
 
+  /* ---------------- lazily build OBSWebSocket instance ---------------- */
+  function findObsCtor(){
+    const g = window.OBSWebSocket;
+    if(!g) return null;
+    if(typeof g === "function") return g;
+    if(g.default && typeof g.default === "function") return g.default;
+    if(g.OBSWebSocket && typeof g.OBSWebSocket === "function") return g.OBSWebSocket;
+    return null;
+  }
+
+  function ensureObs(){
+    if(obs) return obs;
+    const Ctor = findObsCtor();
+    if(!Ctor) return null;
+    try{
+      obs = new Ctor();
+      obs.on("ConnectionClosed", onObsConnectionClosed);
+      obs.on("ConnectionError", function(err){
+        log("Lỗi kết nối OBS WebSocket: " + (err && err.message ? err.message : "unknown"), "bad");
+      });
+      return obs;
+    }catch(e){
+      log("Không thể khởi tạo OBSWebSocket: " + (e && e.message ? e.message : e), "bad");
+      return null;
+    }
+  }
+
   /* ---------------- ui helpers ---------------- */
   function setHeader(text, colorClass){
     headerSub.textContent = text;
@@ -325,22 +422,41 @@
       colorClass === "ok" ? "var(--ok)" :
       colorClass === "warn" ? "var(--warn)" :
       colorClass === "bad" ? "var(--bad)" : "var(--muted)";
+    headerDot.classList.toggle("pulse", colorClass === "warn");
+  }
+
+  function flashMetric(el){
+    if(!el) return;
+    el.classList.remove("flash");
+    void el.offsetWidth; // restart animation
+    el.classList.add("flash");
   }
 
   function setCamState(newState, text){
+    const changed = state.camState !== newState;
     state.camState = newState;
     camStatusText.textContent = text;
     camBadge.className = "badge " + (
       newState === "ok" ? "ok" :
       newState === "warn" ? "warn" :
       newState === "bad" ? "bad" :
-      newState === "reloading" ? "warn" : "idle"
+      newState === "reloading" ? "reloading" : "idle"
     );
     camBadge.textContent =
       newState === "ok" ? "OK" :
       newState === "warn" ? "!" :
       newState === "bad" ? "✕" :
       newState === "reloading" ? "↻" : "?";
+    if(changed && newState !== "reloading"){
+      camBadge.classList.remove("pop");
+      void camBadge.offsetWidth;
+      camBadge.classList.add("pop");
+    }
+  }
+
+  function setButtonLoading(btn, isLoading){
+    btn.classList.toggle("loading", !!isLoading);
+    btn.disabled = !!isLoading || btn.disabled;
   }
 
   function showConfigErr(msg){
@@ -389,6 +505,15 @@
   /* ---------------- connect flow ---------------- */
   async function doConnect(fromReconnect){
     if(state.connecting) return;
+
+    const client = ensureObs();
+    if(!client){
+      const msg = "Không tải được thư viện obs-websocket-js (CDN). Kiểm tra kết nối Internet của thiết bị đang mở trang này rồi tải lại trang.";
+      log(msg, "bad");
+      if(!fromReconnect) showConfigErr(msg);
+      return;
+    }
+
     if(!fromReconnect) readFormIntoCfg();
     if(!cfg.ip){ showConfigErr("Vui lòng nhập IP OBS."); return; }
     if(!cfg.port){ showConfigErr("Vui lòng nhập Port."); return; }
@@ -399,13 +524,13 @@
     state.connecting = true;
     if(!fromReconnect) showConfigErr("");
     setUiConnectedState(false);
-    btnConnect.textContent = "Đang kết nối...";
+    setButtonLoading(btnConnect, true);
     setHeader("đang kết nối...", "warn");
 
     const url = "ws://" + cfg.ip.trim() + ":" + cfg.port;
 
     try{
-      await obs.connect(url, cfg.password || undefined, { rpcVersion: 1 });
+      await client.connect(url, cfg.password || undefined, { rpcVersion: 1 });
       state.connected = true;
       state.connecting = false;
       state.manualDisconnect = false;
@@ -413,7 +538,8 @@
       setHeader("đã kết nối", "ok");
       mObs.textContent = "Đã kết nối";
       mObs.className = "v ok";
-      btnConnect.textContent = "Kết nối OBS";
+      flashMetric(mObsBox);
+      setButtonLoading(btnConnect, false);
       setUiConnectedState(true);
 
       await verifySource();
@@ -421,7 +547,7 @@
     }catch(err){
       state.connected = false;
       state.connecting = false;
-      btnConnect.textContent = "Kết nối OBS";
+      setButtonLoading(btnConnect, false);
       setUiConnectedState(false);
       const msg = describeObsError(err);
       log("Kết nối OBS thất bại: " + msg, "bad");
@@ -473,11 +599,12 @@
     }, RECONNECT_DELAY_MS);
   }
 
-  obs.on("ConnectionClosed", function(){
+  function onObsConnectionClosed(){
     if(!state.connected && !state.connecting) return;
     state.connected = false;
     mObs.textContent = "Mất kết nối";
     mObs.className = "v bad";
+    flashMetric(mObsBox);
     setHeader("mất kết nối OBS WebSocket", "bad");
     setCamState("bad", "OBS WebSocket mất kết nối");
     setUiConnectedState(false);
@@ -485,11 +612,7 @@
       log("OBS WebSocket bị ngắt kết nối. Sẽ tự động thử kết nối lại...", "bad");
       scheduleReconnect();
     }
-  });
-
-  obs.on("ConnectionError", function(err){
-    log("Lỗi kết nối OBS WebSocket: " + (err && err.message ? err.message : "unknown"), "bad");
-  });
+  }
 
   /* ---------------- monitor loop ---------------- */
   function startMonitor(){
@@ -526,7 +649,7 @@
   }
 
   async function checkCamera(){
-    if(!state.connected || state.checkInFlight) return;
+    if(!state.connected || state.checkInFlight || !obs) return;
     if(!cfg.source) return;
     state.checkInFlight = true;
     try{
@@ -547,6 +670,7 @@
 
       state.lastCheckAt = Date.now();
       mLastCheck.textContent = fmtTime(state.lastCheckAt);
+      flashMetric(mCheckBox);
 
       if(!settingsOk){
         setCamState("bad", "Source không tồn tại");
@@ -613,7 +737,7 @@
   }
 
   async function doReload(reason){
-    if(!state.connected){ showDashErr("Chưa kết nối OBS."); return; }
+    if(!state.connected || !obs){ showDashErr("Chưa kết nối OBS."); return; }
     if(!cfg.source){ return; }
 
     setCamState("reloading", "Đang reload source...");
@@ -644,6 +768,8 @@
       state.reloadCount += 1;
       mLastReload.textContent = fmtTime(state.lastReloadAt);
       mReloadCount.textContent = String(state.reloadCount);
+      flashMetric(mReloadTimeBox);
+      flashMetric(mReloadCountBox);
       log('Reload source "' + cfg.source + '" thành công (lần ' + state.reloadCount + ').', "ok");
 
       await sleep(RELOAD_SETTLE_MS);
@@ -703,65 +829,85 @@
     state.manualDisconnect = true;
     stopMonitor();
     if(state.reconnectTimer){ clearTimeout(state.reconnectTimer); state.reconnectTimer = null; }
-    try{ await obs.disconnect(); }catch(e){}
+    setButtonLoading(btnDisconnect, true);
+    try{ if(obs) await obs.disconnect(); }catch(e){}
+    setButtonLoading(btnDisconnect, false);
     state.connected = false;
     state.lastImageHash = null;
     mObs.textContent = "Chưa kết nối";
     mObs.className = "v";
     setCamState("idle", "Chưa kết nối");
     setUiConnectedState(false);
-    btnConnect.textContent = "Kết nối OBS";
     log("Đã ngắt kết nối OBS WebSocket theo yêu cầu.", "");
     setHeader("chưa kết nối", "");
   }
 
-  /* ---------------- wiring ---------------- */
-  btnConnect.addEventListener("click", function(){ doConnect(false); });
-  btnDisconnect.addEventListener("click", function(){ doDisconnect(); });
+  /* ---------------- wiring (always attached, regardless of OBS lib state) ---------------- */
+  function wireUi(){
+    btnConnect.addEventListener("click", function(){
+      doConnect(false).catch(function(e){ log("Lỗi không mong muốn: " + (e&&e.message?e.message:e), "bad"); });
+    });
+    btnDisconnect.addEventListener("click", function(){
+      doDisconnect().catch(function(e){ log("Lỗi không mong muốn: " + (e&&e.message?e.message:e), "bad"); });
+    });
 
-  btnCheckNow.addEventListener("click", function(){
-    showDashErr("");
-    runCheckSafe();
-  });
+    btnCheckNow.addEventListener("click", function(){
+      showDashErr("");
+      runCheckSafe();
+    });
 
-  btnReloadNow.addEventListener("click", function(){
-    doReload("thủ công");
-  });
+    btnReloadNow.addEventListener("click", function(){
+      doReload("thủ công").catch(function(e){ log("Lỗi không mong muốn: " + (e&&e.message?e.message:e), "bad"); });
+    });
 
-  btnSaveSettings.addEventListener("click", function(){
-    const oldSource = cfg.source;
-    readFormIntoCfg();
-    saveCfg(cfg);
-    sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
-    log("Đã lưu cài đặt.", "");
+    btnSaveSettings.addEventListener("click", function(){
+      const oldSource = cfg.source;
+      readFormIntoCfg();
+      saveCfg(cfg);
+      sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
+      log("Đã lưu cài đặt.", "");
 
-    if(cfg.source !== oldSource){
-      state.sourceSceneName = null;
-      state.sourceSceneItemId = null;
-      state.lastImageHash = null;
-      if(state.connected) verifySource();
-    }
-    restartMonitorIfIntervalChanged();
-  });
+      if(cfg.source !== oldSource){
+        state.sourceSceneName = null;
+        state.sourceSceneItemId = null;
+        state.lastImageHash = null;
+        if(state.connected) verifySource();
+      }
+      restartMonitorIfIntervalChanged();
+    });
 
-  btnClearConfig.addEventListener("click", function(){
-    if(!confirm("Xóa toàn bộ cấu hình đã lưu (IP, port, password, tên source, thông số giám sát)?")) return;
-    clearCfg();
-    cfg = Object.assign({}, defaultCfg);
-    fillForm();
-    log("Đã xóa cấu hình đã lưu.", "");
-  });
+    btnClearConfig.addEventListener("click", function(){
+      if(!confirm("Xóa toàn bộ cấu hình đã lưu (IP, port, password, tên source, thông số giám sát)?")) return;
+      clearCfg();
+      cfg = Object.assign({}, defaultCfg);
+      fillForm();
+      log("Đã xóa cấu hình đã lưu.", "");
+    });
 
-  chkAutoReload.addEventListener("change", function(){
-    log("Tự động reload: " + (chkAutoReload.checked ? "BẬT" : "TẮT"), "");
-  });
+    chkAutoReload.addEventListener("change", function(){
+      log("Tự động reload: " + (chkAutoReload.checked ? "BẬT" : "TẮT"), "");
+    });
+  }
 
   /* ---------------- init ---------------- */
   function init(){
+    try{
+      wireUi();
+    }catch(e){
+      // even if wiring itself somehow throws, surface it instead of silently failing
+      console.error("UI wiring error:", e);
+      showConfigErr("Lỗi khởi tạo giao diện: " + (e && e.message ? e.message : e));
+    }
+
     fillForm();
     chkAutoReload.checked = true;
     setUiConnectedState(false);
     setCamState("idle", "Chưa kết nối");
+
+    if(!findObsCtor()){
+      log("Chưa tải xong (hoặc không tải được) thư viện obs-websocket-js từ CDN. Nút \"Kết nối OBS\" sẽ báo lỗi rõ ràng nếu thư viện thực sự không khả dụng.", "warn");
+    }
+
     if(cfg.ip && cfg.source){
       log("Đã tải cấu hình đã lưu. Sẵn sàng kết nối.", "");
     }else{
@@ -769,7 +915,12 @@
     }
     setHeader("chưa kết nối", "");
   }
-  init();
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", init);
+  }else{
+    init();
+  }
 
 })();
 </script>

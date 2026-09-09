@@ -212,6 +212,42 @@
   .footNote{font-size:11px;color:#4a5468;text-align:center;margin-top:18px;line-height:1.6;}
   a{color:var(--accent);}
 
+  /* ---------------- connection summary bar (thay cho card cài đặt cũ) ---------------- */
+  .connBar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .connBar .info{flex:1 1 auto;min-width:0;}
+  .connBar .info .l1{font-size:13px;font-weight:600;color:var(--text);}
+  .connBar .info .l2{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .connBar .actions{display:flex;gap:8px;flex-wrap:wrap;flex:0 0 auto;}
+
+  /* ---------------- modal ---------------- */
+  .modalOverlay{position:fixed;inset:0;background:rgba(6,8,11,.7);backdrop-filter:blur(2px);
+    display:none;align-items:flex-start;justify-content:center;padding:24px 14px;z-index:100;
+    overflow-y:auto;animation:overlayIn .18s ease both;}
+  .modalOverlay.show{display:flex;}
+  @keyframes overlayIn{ from{ opacity:0; } to{ opacity:1; } }
+
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    max-width:640px;width:100%;padding:22px;margin:auto 0;
+    animation:modalIn .22s cubic-bezier(.2,.8,.3,1) both;}
+  @keyframes modalIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+
+  .modal .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;}
+  .modal .modalHead h2{margin:0;}
+  .modalClose{flex:0 0 auto;background:transparent;border:1px solid var(--line);color:var(--muted);
+    width:30px;height:30px;padding:0;border-radius:8px;font-size:16px;line-height:1;}
+  .modalClose:hover{color:var(--text);border-color:#3a4353;}
+
+  .videoWrap{position:relative;width:100%;padding-bottom:56.25%;height:0;overflow:hidden;
+    border-radius:8px;border:1px solid var(--line);margin:14px 0 18px;background:#000;}
+  .videoWrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+  .videoCaption{font-size:11.5px;color:var(--muted);margin:-10px 0 16px;text-align:center;}
+
+  @media (max-width:520px){
+    .row2, .row3{grid-template-columns:1fr;}
+    .modal{padding:16px;}
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
   }
@@ -226,58 +262,81 @@
     <div class="sub" id="headerSub">chưa kết nối</div>
   </header>
 
-  <!-- CONNECTION + MONITOR SETTINGS -->
+  <!-- CONNECTION SUMMARY BAR -->
   <div class="card">
-    <h2>Kết nối &amp; cài đặt giám sát <span class="tag">OBS WebSocket v5</span></h2>
-    <p class="sub">Sửa thông số bất cứ lúc nào — bấm "Lưu cài đặt" để ghi vào trình duyệt, hoặc "Kết nối OBS" để lưu và kết nối ngay.</p>
-
-    <fieldset>
-      <legend>Kết nối OBS</legend>
-      <label for="cfgIp">Địa chỉ IP OBS</label>
-      <input type="text" id="cfgIp" placeholder="192.168.1.100 hoặc localhost">
-
-      <div class="row2">
-        <div>
-          <label for="cfgPort">Port</label>
-          <input type="number" id="cfgPort" placeholder="4455">
-        </div>
-        <div>
-          <label for="cfgPass">Password OBS WebSocket</label>
-          <input type="password" id="cfgPass" placeholder="để trống nếu không đặt" autocomplete="off">
-        </div>
+    <div class="connBar">
+      <div class="info">
+        <div class="l1">Kết nối &amp; cài đặt giám sát</div>
+        <div class="l2" id="connSummary">Chưa cấu hình — bấm "Cài đặt kết nối" để bắt đầu.</div>
       </div>
-
-      <label for="cfgSource">Tên Source / Overlay camera trong OBS</label>
-      <input type="text" id="cfgSource" placeholder='Ví dụ: "Video Camera Capture"'>
-      <div class="hint">Tên phải trùng chính xác với tên source (Input) trong OBS.</div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Thông số giám sát</legend>
-      <div class="row3">
-        <div>
-          <label for="cfgInterval">Chu kỳ kiểm tra (giây)</label>
-          <input type="number" id="cfgInterval" min="2" max="120">
-        </div>
-        <div>
-          <label for="cfgFreeze">Timeout phát hiện đơ (giây)</label>
-          <input type="number" id="cfgFreeze" min="5" max="300">
-        </div>
-        <div>
-          <label for="cfgCooldown">Cooldown reload (giây)</label>
-          <input type="number" id="cfgCooldown" min="10" max="600">
-        </div>
+      <div class="actions">
+        <button class="primary" id="btnOpenSettings">Cài đặt kết nối</button>
+        <button class="danger" id="btnDisconnect" disabled>Ngắt kết nối</button>
       </div>
-      <div class="hint">Chu kỳ kiểm tra càng ngắn thì phát hiện lỗi càng nhanh nhưng gọi OBS WebSocket nhiều hơn. Mặc định 5s / 12s / 20s.</div>
-    </fieldset>
-
-    <div class="btnrow">
-      <button class="primary" id="btnConnect">Kết nối OBS</button>
-      <button class="danger" id="btnDisconnect" disabled>Ngắt kết nối</button>
-      <button id="btnSaveSettings">Lưu cài đặt</button>
-      <button class="danger" id="btnClearConfig">Xóa cấu hình đã lưu</button>
     </div>
-    <div class="err" id="configErr"></div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modalOverlay" id="settingsModalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modalHead">
+        <h2 id="settingsModalTitle">Kết nối &amp; cài đặt giám sát <span class="tag">OBS WebSocket v5</span></h2>
+        <button class="modalClose" id="btnCloseSettings" aria-label="Đóng" title="Đóng">✕</button>
+      </div>
+      <p class="sub">Sửa thông số bất cứ lúc nào — bấm "Lưu cài đặt" để ghi vào trình duyệt, hoặc "Kết nối OBS" để lưu và kết nối ngay.</p>
+
+      <div class="videoWrap">
+        <iframe src="https://www.youtube.com/embed/iGWt5eYdozM?si=liB9MJuc4YLof0a_" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+      <div class="videoCaption">Video hướng dẫn bật OBS WebSocket &amp; lấy IP/Port/Password.</div>
+
+      <fieldset>
+        <legend>Kết nối OBS</legend>
+        <label for="cfgIp">Địa chỉ IP OBS</label>
+        <input type="text" id="cfgIp" placeholder="192.168.1.100 hoặc localhost">
+
+        <div class="row2">
+          <div>
+            <label for="cfgPort">Port</label>
+            <input type="number" id="cfgPort" placeholder="4455">
+          </div>
+          <div>
+            <label for="cfgPass">Password OBS WebSocket</label>
+            <input type="password" id="cfgPass" placeholder="để trống nếu không đặt" autocomplete="off">
+          </div>
+        </div>
+
+        <label for="cfgSource">Tên Source / Overlay camera trong OBS</label>
+        <input type="text" id="cfgSource" placeholder='Ví dụ: "Video Camera Capture"'>
+        <div class="hint">Tên phải trùng chính xác với tên source (Input) trong OBS.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Thông số giám sát</legend>
+        <div class="row3">
+          <div>
+            <label for="cfgInterval">Chu kỳ kiểm tra (giây)</label>
+            <input type="number" id="cfgInterval" min="2" max="120">
+          </div>
+          <div>
+            <label for="cfgFreeze">Timeout phát hiện đơ (giây)</label>
+            <input type="number" id="cfgFreeze" min="5" max="300">
+          </div>
+          <div>
+            <label for="cfgCooldown">Cooldown reload (giây)</label>
+            <input type="number" id="cfgCooldown" min="10" max="600">
+          </div>
+        </div>
+        <div class="hint">Chu kỳ kiểm tra càng ngắn thì phát hiện lỗi càng nhanh nhưng gọi OBS WebSocket nhiều hơn. Mặc định 5s / 12s / 20s.</div>
+      </fieldset>
+
+      <div class="btnrow">
+        <button class="primary" id="btnConnect">Kết nối OBS</button>
+        <button id="btnSaveSettings">Lưu cài đặt</button>
+        <button class="danger" id="btnClearConfig">Xóa cấu hình đã lưu</button>
+      </div>
+      <div class="err" id="configErr"></div>
+    </div>
   </div>
 
   <!-- DASHBOARD / STATUS -->
@@ -385,6 +444,9 @@
   const configErr = $("configErr");
   const btnConnect = $("btnConnect"), btnDisconnect = $("btnDisconnect");
   const btnSaveSettings = $("btnSaveSettings"), btnClearConfig = $("btnClearConfig");
+  const btnOpenSettings = $("btnOpenSettings"), btnCloseSettings = $("btnCloseSettings");
+  const settingsModalOverlay = $("settingsModalOverlay");
+  const connSummary = $("connSummary");
 
   const sourceNameLabel = $("sourceNameLabel");
   const camBadge = $("camBadge"), camStatusText = $("camStatusText");
@@ -533,6 +595,22 @@
     btnReloadNow.disabled = !connected;
   }
 
+  /* ---------------- settings modal ---------------- */
+  function openSettingsModal(){
+    settingsModalOverlay.classList.add("show");
+  }
+  function closeSettingsModal(){
+    settingsModalOverlay.classList.remove("show");
+  }
+
+  function renderConnSummary(){
+    if(!cfg.ip || !cfg.source){
+      connSummary.textContent = 'Chưa cấu hình — bấm "Cài đặt kết nối" để bắt đầu.';
+      return;
+    }
+    connSummary.textContent = cfg.ip + ":" + (cfg.port || 4455) + '  •  Source: "' + cfg.source + '"';
+  }
+
   /* ---------------- populate form from cfg ---------------- */
   function fillForm(){
     cfgIp.value = cfg.ip || "";
@@ -543,6 +621,7 @@
     cfgFreeze.value = cfg.freezeTimeoutSec || 12;
     cfgCooldown.value = cfg.reloadCooldownSec || 20;
     sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
+    renderConnSummary();
   }
 
   function readFormIntoCfg(){
@@ -606,6 +685,8 @@
       flashMetric(mObsBox);
       setButtonLoading(btnConnect, false);
       setUiConnectedState(true);
+      renderConnSummary();
+      closeSettingsModal();
 
       await verifySource();
       startMonitor();
@@ -925,6 +1006,7 @@
       readFormIntoCfg();
       saveCfg(cfg);
       sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
+      renderConnSummary();
       log("Đã lưu cài đặt.", "");
 
       if(cfg.source !== oldSource){
@@ -940,6 +1022,15 @@
       cfg = Object.assign({}, defaultCfg);
       fillForm();
       log("Đã xóa cấu hình đã lưu.", "");
+    });
+
+    btnOpenSettings.addEventListener("click", openSettingsModal);
+    btnCloseSettings.addEventListener("click", closeSettingsModal);
+    settingsModalOverlay.addEventListener("click", function(e){
+      if(e.target === settingsModalOverlay) closeSettingsModal();
+    });
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape" && settingsModalOverlay.classList.contains("show")) closeSettingsModal();
     });
 
     chkAutoReload.addEventListener("change", function(){
@@ -974,7 +1065,8 @@
     if(cfg.ip && cfg.source){
       log("Đã tải cấu hình đã lưu. Sẵn sàng kết nối.", "");
     }else{
-      log("Chưa có cấu hình. Nhập thông tin OBS ở trên rồi bấm \"Kết nối OBS\".", "");
+      log('Chưa có cấu hình. Bấm "Cài đặt kết nối" để nhập thông tin OBS.', "");
+      openSettingsModal();
     }
     setHeader("chưa kết nối", "");
   }

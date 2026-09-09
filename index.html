@@ -426,8 +426,6 @@
     connecting:false,
     manualDisconnect:false,
     sourceFound:false,
-    sourceSceneName:null,
-    sourceSceneItemId:null,
     lastImageHash:null,
     lastImageChangeAt:0,
     lastCheckAt:0,
@@ -794,7 +792,17 @@
     }
   }
 
-  /* ---------------- reload logic ---------------- */
+  /* ---------------- reload logic ----------------
+     Quan trọng: đây KHÔNG phải là ẩn/hiện overlay (SetSceneItemEnabled).
+     Tùy loại source, ta gọi đúng cơ chế "deactivate rồi activate lại":
+       - Media/VLC source  -> TriggerMediaInputAction RESTART (restart phát lại thật sự)
+       - Browser Source    -> PressInputPropertiesButton "refreshnocache" (tải lại trang)
+       - Video Capture Device (webcam) -> xoá device_id rồi set lại đúng ID cũ,
+         buộc OBS ngắt kết nối & kết nối lại thiết bị camera thật sự.
+       - Loại khác không xác định được field thiết bị -> fallback: ghi lại
+         chính settings hiện có (buộc OBS gọi update()) — vẫn không đụng tới
+         SceneItemEnabled nên overlay không hề bị ẩn/hiện.
+     ------------------------------------------------ */
   async function maybeAutoReload(reason){
     if(!chkAutoReload.checked) return;
     const now = Date.now();
@@ -803,33 +811,56 @@
     await doReload(reason);
   }
 
+  const DEVICE_ID_FIELD_BY_KIND = {
+    "dshow_input": "video_device_id",   // Windows - Video Capture Device
+    "av_capture_input": "device",       // macOS - Video Capture Device
+    "v4l2_input": "device_id"           // Linux - Video Capture Device (V4L2)
+  };
+
   async function doReload(reason){
     if(!state.connected || !obs){ showDashErr("Chưa kết nối OBS."); return; }
     if(!cfg.source){ return; }
 
-    setCamState("reloading", "Đang reload source...");
-    log('Bắt đầu reload source "' + cfg.source + '" (lý do: ' + (reason||"thủ công") + ')...', "warn");
+    setCamState("reloading", "Đang deactivate & activate lại source...");
+    log('Bắt đầu deactivate/activate lại source "' + cfg.source + '" (lý do: ' + (reason||"thủ công") + ')...', "warn");
 
     try{
-      const found = await locateSceneItem();
-      if(!found){
-        log('Không tìm thấy source "' + cfg.source + '" trong scene nào để toggle. Không thể reload tự động bằng cách này.', "bad");
-        showDashErr('Không tìm thấy source trong scene hiện có — không thể tự động reload. Hãy đặt source vào một scene, hoặc reload thủ công trong OBS.');
-        setCamState("bad", "Không thể reload tự động (source không nằm trong scene)");
-        return;
-      }
+      const cur = await obs.call("GetInputSettings", { inputName: cfg.source });
+      const kind = cur.inputKind;
+      const settings = cur.inputSettings || {};
 
-      await obs.call("SetSceneItemEnabled", {
-        sceneName: state.sourceSceneName,
-        sceneItemId: state.sourceSceneItemId,
-        sceneItemEnabled: false
-      });
-      await sleep(900);
-      await obs.call("SetSceneItemEnabled", {
-        sceneName: state.sourceSceneName,
-        sceneItemId: state.sourceSceneItemId,
-        sceneItemEnabled: true
-      });
+      if(kind === "ffmpeg_source" || kind === "vlc_source"){
+        log('Source kiểu "' + kind + '": dùng TriggerMediaInputAction để restart phát lại.', "");
+        await obs.call("TriggerMediaInputAction", {
+          inputName: cfg.source,
+          mediaAction: "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART"
+        });
+      }else if(kind === "browser_source"){
+        log('Source kiểu "browser_source": bấm nút "Refresh no cache" để tải lại trang.', "");
+        await obs.call("PressInputPropertiesButton", {
+          inputName: cfg.source,
+          propertyName: "refreshnocache"
+        });
+      }else{
+        const deviceField = DEVICE_ID_FIELD_BY_KIND[kind] || null;
+        if(deviceField && Object.prototype.hasOwnProperty.call(settings, deviceField)){
+          const realId = settings[deviceField];
+          log('Source kiểu "' + kind + '": deactivate (bỏ chọn thiết bị) rồi activate lại (chọn lại "' + deviceField + '").', "");
+
+          const deactivated = Object.assign({}, settings);
+          deactivated[deviceField] = "";
+          await obs.call("SetInputSettings", { inputName: cfg.source, inputSettings: deactivated, overlay: false });
+
+          await sleep(700);
+
+          const reactivated = Object.assign({}, settings);
+          reactivated[deviceField] = realId;
+          await obs.call("SetInputSettings", { inputName: cfg.source, inputSettings: reactivated, overlay: false });
+        }else{
+          log('Không nhận diện được field thiết bị cho loại source "' + kind + '" — dùng cách chung: ghi lại settings hiện có để buộc OBS nạp lại source (có thể không reset phần cứng triệt để với loại source này).', "warn");
+          await obs.call("SetInputSettings", { inputName: cfg.source, inputSettings: settings, overlay: false });
+        }
+      }
 
       state.lastReloadAt = Date.now();
       state.reloadCount += 1;
@@ -837,7 +868,7 @@
       mReloadCount.textContent = String(state.reloadCount);
       flashMetric(mReloadTimeBox);
       flashMetric(mReloadCountBox);
-      log('Reload source "' + cfg.source + '" thành công (lần ' + state.reloadCount + ').', "ok");
+      log('Deactivate/activate lại source "' + cfg.source + '" thành công (lần ' + state.reloadCount + ').', "ok");
 
       await sleep(RELOAD_SETTLE_MS);
       state.lastImageHash = null;
@@ -845,47 +876,9 @@
       setCamState("ok", "Vừa reload xong, đang giám sát lại");
     }catch(err){
       const msg = err && err.message ? err.message : String(err);
-      log('Reload source thất bại: ' + msg, "bad");
+      log('Deactivate/activate source thất bại: ' + msg, "bad");
       showDashErr("Reload thất bại: " + msg);
       setCamState("bad", "Reload thất bại");
-    }
-  }
-
-  async function locateSceneItem(){
-    try{
-      const cur = await obs.call("GetCurrentProgramScene");
-      const sceneName = cur.currentProgramSceneName || cur.sceneName;
-      const id = await tryGetSceneItemId(sceneName);
-      if(id !== null){
-        state.sourceSceneName = sceneName;
-        state.sourceSceneItemId = id;
-        return true;
-      }
-    }catch(e){ /* fall through */ }
-
-    try{
-      const list = await obs.call("GetSceneList");
-      const scenes = list.scenes || [];
-      for(const s of scenes){
-        const name = s.sceneName;
-        const id = await tryGetSceneItemId(name);
-        if(id !== null){
-          state.sourceSceneName = name;
-          state.sourceSceneItemId = id;
-          return true;
-        }
-      }
-    }catch(e){ /* ignore */ }
-
-    return false;
-  }
-
-  async function tryGetSceneItemId(sceneName){
-    try{
-      const res = await obs.call("GetSceneItemId", { sceneName: sceneName, sourceName: cfg.source });
-      return (typeof res.sceneItemId === "number") ? res.sceneItemId : null;
-    }catch(e){
-      return null;
     }
   }
 
@@ -935,8 +928,6 @@
       log("Đã lưu cài đặt.", "");
 
       if(cfg.source !== oldSource){
-        state.sourceSceneName = null;
-        state.sourceSceneItemId = null;
         state.lastImageHash = null;
         if(state.connected) verifySource();
       }

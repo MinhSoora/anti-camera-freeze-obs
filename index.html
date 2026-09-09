@@ -4,8 +4,63 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>OBS Camera Watch</title>
-<script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-websocket.min.js"
-        onerror="this.onerror=null;this.src='https://unpkg.com/obs-websocket-js@5.0.6/dist/obs-websocket.min.js';"></script>
+<script>
+/* ============================================================
+   Bộ tải thư viện obs-websocket-js với nhiều CDN/đường dẫn dự
+   phòng. Lý do cần việc này: bản v5.0.6 KHÔNG có file
+   "dist/obs-websocket.min.js" (đó là tên file của bản v4 cũ) —
+   nên link CDN gốc (và cả link fallback unpkg) trong trang này
+   trước đây đều 404. Danh sách dưới đây thử lần lượt: URL rút
+   gọn (jsDelivr/unpkg tự chọn đúng file "browser build" khai
+   báo trong package.json của đúng phiên bản) trước, rồi mới tới
+   vài tên file cụ thể từng được dùng qua các bản phát hành, để
+   tăng tối đa khả năng tải thành công dù CDN nào đó có vấn đề.
+   ============================================================ */
+(function(){
+  "use strict";
+  var CANDIDATES = [
+    "https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6",
+    "https://unpkg.com/obs-websocket-js@5.0.6",
+    "https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-ws.global.js",
+    "https://unpkg.com/obs-websocket-js@5.0.6/dist/obs-ws.global.js",
+    "https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-ws.min.js",
+    "https://unpkg.com/obs-websocket-js@5.0.6/dist/obs-ws.min.js",
+    "https://cdn.jsdelivr.net/npm/obs-websocket-js/dist/obs-ws.global.js",
+    "https://unpkg.com/obs-websocket-js/dist/obs-ws.global.js"
+  ];
+
+  function tryLoadScript(url){
+    return new Promise(function(resolve, reject){
+      var s = document.createElement("script");
+      s.src = url;
+      s.async = true;
+      s.onload = function(){
+        if(window.OBSWebSocket){ resolve(url); }
+        else { reject(new Error("Tải xong nhưng không thấy global OBSWebSocket: " + url)); }
+      };
+      s.onerror = function(){ reject(new Error("Không tải được: " + url)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  window.loadObsLibrary = function(){
+    if(window.OBSWebSocket) return Promise.resolve("already-loaded");
+    if(window.__obsLibLoadingPromise) return window.__obsLibLoadingPromise;
+    var chain = Promise.reject(new Error("start"));
+    CANDIDATES.forEach(function(url){
+      chain = chain.catch(function(){ return tryLoadScript(url); });
+    });
+    window.__obsLibLoadingPromise = chain.catch(function(err){
+      window.__obsLibLoadingPromise = null;
+      throw err;
+    });
+    return window.__obsLibLoadingPromise;
+  };
+
+  // Bắt đầu tải ngay khi trang mở, không chặn phần còn lại của trang.
+  window.loadObsLibrary().catch(function(){ /* sẽ được xử lý lại khi bấm "Kết nối OBS" */ });
+})();
+</script>
 <style>
   :root{
     --bg:#0e1116;
@@ -506,7 +561,19 @@
   async function doConnect(fromReconnect){
     if(state.connecting) return;
 
-    const client = ensureObs();
+    let client = ensureObs();
+    if(!client && window.loadObsLibrary){
+      // Thư viện có thể chưa tải xong (chậm mạng) hoặc lần thử đầu bị lỗi —
+      // thử tải lại (với các URL/CDN dự phòng) ngay lúc bấm "Kết nối" thay vì
+      // báo lỗi ngay lập tức.
+      log("Đang thử tải thư viện obs-websocket-js...", "");
+      try{
+        await window.loadObsLibrary();
+        client = ensureObs();
+      }catch(e){
+        // sẽ rơi vào nhánh báo lỗi bên dưới
+      }
+    }
     if(!client){
       const msg = "Không tải được thư viện obs-websocket-js (CDN). Kiểm tra kết nối Internet của thiết bị đang mở trang này rồi tải lại trang.";
       log(msg, "bad");
@@ -905,7 +972,12 @@
     setCamState("idle", "Chưa kết nối");
 
     if(!findObsCtor()){
-      log("Chưa tải xong (hoặc không tải được) thư viện obs-websocket-js từ CDN. Nút \"Kết nối OBS\" sẽ báo lỗi rõ ràng nếu thư viện thực sự không khả dụng.", "warn");
+      log("Chưa tải xong (hoặc không tải được) thư viện obs-websocket-js từ CDN. Nút \"Kết nối OBS\" sẽ tự thử tải lại và báo lỗi rõ ràng nếu thư viện thực sự không khả dụng.", "warn");
+      if(window.loadObsLibrary){
+        window.loadObsLibrary().then(function(){
+          if(findObsCtor()) log("Đã tải xong thư viện obs-websocket-js.", "ok");
+        }).catch(function(){ /* im lặng ở đây, sẽ báo khi bấm Kết nối */ });
+      }
     }
 
     if(cfg.ip && cfg.source){

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>OBS Camera Watch</title>
+<script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.6/dist/obs-websocket.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#161b22;
+    --panel-2:#1c222b;
+    --line:#262d38;
+    --text:#dfe4ec;
+    --muted:#7d8798;
+    --ok:#35d399;
+    --ok-dim:#1c4d3d;
+    --warn:#f0ad4e;
+    --warn-dim:#4d3c1c;
+    --bad:#f0554f;
+    --bad-dim:#4d2220;
+    --accent:#4fb0e6;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+  body{min-height:100vh;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px;}
+
+  header.top{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  header.top .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto;}
+  header.top h1{font-size:15px;letter-spacing:.02em;font-weight:600;margin:0;color:var(--text);}
+  header.top .sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:14px;}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 14px;color:var(--text);}
+  .card h2 span{color:var(--muted);font-weight:400;}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=password],input[type=number]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:7px;padding:10px 11px;font-size:14px;font-family:var(--mono);
+  }
+  input:focus{outline:none;border-color:var(--accent);}
+  .row2{display:grid;grid-template-columns:1fr 110px;gap:12px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
+
+  button{
+    font-family:var(--sans);font-size:13.5px;font-weight:600;cursor:pointer;
+    border-radius:7px;border:1px solid var(--line);padding:10px 16px;
+    background:var(--panel-2);color:var(--text);transition:border-color .15s,background .15s;
+  }
+  button:hover{border-color:#3a4353;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#08131a;}
+  button.primary:hover{filter:brightness(1.08);}
+  button.danger{color:var(--bad);}
+  button.danger:hover{border-color:var(--bad);}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+
+  .err{background:var(--bad-dim);border:1px solid #6b2c28;color:#ffb3af;padding:10px 12px;border-radius:7px;font-size:12.5px;margin-top:12px;display:none;line-height:1.5;}
+  .err.show{display:block;}
+
+  /* status grid */
+  .statusHero{display:flex;align-items:center;gap:16px;padding:6px 4px 18px;}
+  .statusHero .badge{
+    width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:24px;flex:0 0 auto;
+  }
+  .statusHero .info .label{font-size:12px;color:var(--muted);margin-bottom:3px;}
+  .statusHero .info .value{font-size:18px;font-weight:700;}
+
+  .badge.ok{background:var(--ok-dim);color:var(--ok);}
+  .badge.warn{background:var(--warn-dim);color:var(--warn);}
+  .badge.bad{background:var(--bad-dim);color:var(--bad);}
+  .badge.idle{background:var(--panel-2);color:var(--muted);}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 13px;}
+  .metric .k{font-size:11px;color:var(--muted);text-transform:none;margin-bottom:5px;}
+  .metric .v{font-size:13.5px;font-family:var(--mono);word-break:break-word;}
+  .metric .v.ok{color:var(--ok);}
+  .metric .v.warn{color:var(--warn);}
+  .metric .v.bad{color:var(--bad);}
+
+  .checkline{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--text);}
+  .checkline input{width:16px;height:16px;}
+
+  .log{background:#0a0d12;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+    height:190px;overflow-y:auto;font-family:var(--mono);font-size:11.5px;line-height:1.65;}
+  .log .l{color:var(--muted);white-space:pre-wrap;word-break:break-word;}
+  .log .l .t{color:#4a5468;}
+  .log .l.warn{color:var(--warn);}
+  .log .l.bad{color:var(--bad);}
+  .log .l.ok{color:var(--ok);}
+
+  details{margin-top:0;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary:before{content:"▸ ";}
+  details[open] summary:before{content:"▾ ";}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .footNote{font-size:11px;color:#4a5468;text-align:center;margin-top:18px;line-height:1.6;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="dot" id="headerDot"></div>
+    <h1>OBS Camera Watch</h1>
+    <div class="sub" id="headerSub">chưa kết nối</div>
+  </header>
+
+  <!-- SCREEN 1: CONFIG / CONNECT -->
+  <div class="screen" id="screenConfig">
+    <div class="card">
+      <h2>Kết nối OBS WebSocket <span>v5</span></h2>
+
+      <label for="cfgIp">Địa chỉ IP OBS</label>
+      <input type="text" id="cfgIp" placeholder="192.168.1.100 hoặc localhost">
+
+      <div class="row2">
+        <div>
+          <label for="cfgPort">Port</label>
+          <input type="number" id="cfgPort" placeholder="4455">
+        </div>
+        <div>
+          <label for="cfgSecure">Kết nối</label>
+          <input type="text" id="cfgSecureDisplay" value="ws://" disabled style="text-align:center;opacity:.6">
+        </div>
+      </div>
+
+      <label for="cfgPass">Password OBS WebSocket</label>
+      <input type="password" id="cfgPass" placeholder="•••••••• (để trống nếu không đặt password)" autocomplete="off">
+
+      <label for="cfgSource">Tên Source / Overlay camera trong OBS</label>
+      <input type="text" id="cfgSource" placeholder='Ví dụ: "Video Camera Capture"'>
+      <div class="hint">Tên phải trùng chính xác với tên source (Input) trong OBS, không phân biệt hoa/thường không được đảm bảo.</div>
+
+      <div class="btnrow">
+        <button class="primary" id="btnConnect">Kết nối OBS</button>
+      </div>
+      <div class="err" id="configErr"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ghi chú</h2>
+      <div class="hint">
+        • Toàn bộ IP, port, password và tên source chỉ được lưu trong <b>localStorage</b> của trình duyệt này, không gửi đi đâu khác.<br>
+        • Port mặc định của OBS WebSocket v5 là <b>4455</b>.<br>
+        • OBS WebSocket không cung cấp trực tiếp trạng thái "camera bị đơ". App dùng ảnh chụp source (GetSourceScreenshot) để so sánh thay đổi hình ảnh theo thời gian — đây là tín hiệu suy luận, không phải phát hiện 100% chính xác.
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: DASHBOARD -->
+  <div class="screen" id="screenDash">
+
+    <div class="card">
+      <div class="statusHero">
+        <div class="badge idle" id="camBadge">?</div>
+        <div class="info">
+          <div class="label">Trạng thái camera — <span id="sourceNameLabel">-</span></div>
+          <div class="value" id="camStatusText">Chưa kiểm tra</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="metric">
+          <div class="k">OBS WebSocket</div>
+          <div class="v ok" id="mObs">Đã kết nối</div>
+        </div>
+        <div class="metric">
+          <div class="k">Kiểm tra lần cuối</div>
+          <div class="v" id="mLastCheck">-</div>
+        </div>
+        <div class="metric">
+          <div class="k">Reload gần nhất</div>
+          <div class="v" id="mLastReload">chưa reload</div>
+        </div>
+        <div class="metric">
+          <div class="k">Số lần reload</div>
+          <div class="v" id="mReloadCount">0</div>
+        </div>
+      </div>
+
+      <label class="checkline">
+        <input type="checkbox" id="chkAutoReload">
+        Tự động reload khi phát hiện lỗi camera
+      </label>
+
+      <div class="btnrow">
+        <button id="btnCheckNow">Kiểm tra ngay</button>
+        <button id="btnReloadNow">Reload Camera</button>
+        <button class="danger" id="btnDisconnect">Ngắt kết nối</button>
+      </div>
+      <div class="err" id="dashErr"></div>
+    </div>
+
+    <div class="card">
+      <h2>Log sự kiện</h2>
+      <div class="log" id="logBox"></div>
+    </div>
+
+    <div class="card">
+      <details id="settingsDetails">
+        <summary>Cài đặt</summary>
+        <div style="margin-top:14px;">
+          <label for="setIp">IP OBS</label>
+          <input type="text" id="setIp">
+          <div class="row2">
+            <div>
+              <label for="setPort">Port</label>
+              <input type="number" id="setPort">
+            </div>
+            <div></div>
+          </div>
+          <label for="setPass">Password</label>
+          <input type="password" id="setPass" autocomplete="off">
+          <label for="setSource">Tên source camera</label>
+          <input type="text" id="setSource">
+          <div class="row2">
+            <div>
+              <label for="setFreeze">Timeout phát hiện đơ (giây)</label>
+              <input type="number" id="setFreeze" min="5" max="120">
+            </div>
+            <div>
+              <label for="setCooldown">Cooldown reload (giây)</label>
+              <input type="number" id="setCooldown" min="10" max="600">
+            </div>
+          </div>
+          <div class="btnrow">
+            <button class="primary" id="btnSaveSettings">Lưu cài đặt</button>
+            <button class="danger" id="btnClearConfig">Xóa cấu hình đã lưu</button>
+          </div>
+          <div class="hint" style="margin-top:12px;">
+            Thay đổi IP/Port/Password/tên source sẽ áp dụng cho lần kết nối tiếp theo (bấm "Ngắt kết nối" rồi kết nối lại để dùng cấu hình mới ngay).
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="footNote">
+    Dữ liệu cấu hình chỉ lưu cục bộ trên trình duyệt (localStorage). Không có server trung gian nào được sử dụng.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- storage ---------------- */
+  const STORAGE_KEY = "obsCamMonitorConfig_v1";
+  const defaultCfg = { ip:"", port:4455, password:"", source:"", freezeTimeoutSec:12, reloadCooldownSec:20 };
+
+  function loadCfg(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return Object.assign({}, defaultCfg);
+      const parsed = JSON.parse(raw);
+      return Object.assign({}, defaultCfg, parsed);
+    }catch(e){
+      return Object.assign({}, defaultCfg);
+    }
+  }
+  function saveCfg(cfg){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); }catch(e){ /* storage may be unavailable */ }
+  }
+  function clearCfg(){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  }
+
+  let cfg = loadCfg();
+
+  /* ---------------- dom refs ---------------- */
+  const $ = (id) => document.getElementById(id);
+
+  const screenConfig = $("screenConfig");
+  const screenDash = $("screenDash");
+  const headerDot = $("headerDot");
+  const headerSub = $("headerSub");
+
+  const cfgIp = $("cfgIp"), cfgPort = $("cfgPort"), cfgPass = $("cfgPass"), cfgSource = $("cfgSource");
+  const configErr = $("configErr");
+  const btnConnect = $("btnConnect");
+
+  const sourceNameLabel = $("sourceNameLabel");
+  const camBadge = $("camBadge");
+  const camStatusText = $("camStatusText");
+  const mObs = $("mObs");
+  const mLastCheck = $("mLastCheck");
+  const mLastReload = $("mLastReload");
+  const mReloadCount = $("mReloadCount");
+  const chkAutoReload = $("chkAutoReload");
+  const btnCheckNow = $("btnCheckNow");
+  const btnReloadNow = $("btnReloadNow");
+  const btnDisconnect = $("btnDisconnect");
+  const dashErr = $("dashErr");
+  const logBox = $("logBox");
+
+  const setIp = $("setIp"), setPort = $("setPort"), setPass = $("setPass"), setSource = $("setSource");
+  const setFreeze = $("setFreeze"), setCooldown = $("setCooldown");
+  const btnSaveSettings = $("btnSaveSettings");
+  const btnClearConfig = $("btnClearConfig");
+
+  /* ---------------- log ---------------- */
+  const MAX_LOGS = 50;
+  let logs = [];
+  function log(msg, level){
+    level = level || "";
+    const now = new Date();
+    const t = now.toLocaleTimeString('vi-VN', {hour12:false});
+    logs.push({t, msg, level});
+    if(logs.length > MAX_LOGS) logs.shift();
+    renderLogs();
+  }
+  function renderLogs(){
+    logBox.innerHTML = logs.map(function(l){
+      const cls = l.level ? " "+l.level : "";
+      return '<div class="l'+cls+'"><span class="t">['+l.t+']</span> '+escapeHtml(l.msg)+'</div>';
+    }).join("");
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  /* ---------------- state ---------------- */
+  const obs = new (window.OBSWebSocket && window.OBSWebSocket.default ? window.OBSWebSocket.default : window.OBSWebSocket)();
+
+  let state = {
+    connected:false,
+    connecting:false,
+    manualDisconnect:false,
+    sourceFound:false,
+    sourceSceneName:null,
+    sourceSceneItemId:null,
+    lastImageHash:null,
+    lastImageChangeAt:0,
+    lastCheckAt:0,
+    lastReloadAt:0,
+    reloadCount:0,
+    camState:"idle", // idle | ok | warn | bad | reloading
+    monitorTimer:null,
+    reconnectTimer:null,
+    checkInFlight:false
+  };
+
+  const CHECK_INTERVAL_MS = 5000;
+  const RECONNECT_DELAY_MS = 6000;
+  const RELOAD_SETTLE_MS = 4000; // after reload, ignore freeze baseline briefly
+
+  /* ---------------- header/status helpers ---------------- */
+  function setHeader(text, colorClass){
+    headerSub.textContent = text;
+    headerDot.style.background =
+      colorClass === "ok" ? "var(--ok)" :
+      colorClass === "warn" ? "var(--warn)" :
+      colorClass === "bad" ? "var(--bad)" : "var(--muted)";
+  }
+
+  function setCamState(newState, text){
+    state.camState = newState;
+    camStatusText.textContent = text;
+    camBadge.className = "badge " + (
+      newState === "ok" ? "ok" :
+      newState === "warn" ? "warn" :
+      newState === "bad" ? "bad" :
+      newState === "reloading" ? "warn" : "idle"
+    );
+    camBadge.textContent =
+      newState === "ok" ? "OK" :
+      newState === "warn" ? "!" :
+      newState === "bad" ? "✕" :
+      newState === "reloading" ? "↻" : "?";
+  }
+
+  function showConfigErr(msg){
+    configErr.textContent = msg;
+    configErr.classList.toggle("show", !!msg);
+  }
+  function showDashErr(msg){
+    dashErr.textContent = msg;
+    dashErr.classList.toggle("show", !!msg);
+    if(msg){ setTimeout(function(){ if(dashErr.textContent===msg) showDashErr(""); }, 8000); }
+  }
+
+  function fmtTime(ts){
+    if(!ts) return "-";
+    return new Date(ts).toLocaleTimeString('vi-VN', {hour12:false});
+  }
+
+  function switchScreen(which){
+    screenConfig.classList.toggle("active", which === "config");
+    screenDash.classList.toggle("active", which === "dash");
+  }
+
+  /* ---------------- populate forms from cfg ---------------- */
+  function fillConfigForm(){
+    cfgIp.value = cfg.ip || "";
+    cfgPort.value = cfg.port || 4455;
+    cfgPass.value = cfg.password || "";
+    cfgSource.value = cfg.source || "";
+  }
+  function fillSettingsForm(){
+    setIp.value = cfg.ip || "";
+    setPort.value = cfg.port || 4455;
+    setPass.value = cfg.password || "";
+    setSource.value = cfg.source || "";
+    setFreeze.value = cfg.freezeTimeoutSec || 12;
+    setCooldown.value = cfg.reloadCooldownSec || 20;
+  }
+
+  /* ---------------- connect flow ---------------- */
+  async function doConnect(fromReconnect){
+    if(state.connecting) return;
+    if(!cfg.ip){ showConfigErr("Vui lòng nhập IP OBS."); return; }
+    if(!cfg.port){ showConfigErr("Vui lòng nhập Port."); return; }
+    if(!cfg.source){ showConfigErr("Vui lòng nhập tên Source camera."); return; }
+
+    state.connecting = true;
+    if(!fromReconnect) showConfigErr("");
+    btnConnect.disabled = true;
+    btnConnect.textContent = "Đang kết nối...";
+    setHeader("đang kết nối...", "warn");
+
+    const url = "ws://" + cfg.ip.trim() + ":" + cfg.port;
+
+    try{
+      await obs.connect(url, cfg.password || undefined, { rpcVersion: 1 });
+      state.connected = true;
+      state.connecting = false;
+      state.manualDisconnect = false;
+      log("Đã kết nối OBS WebSocket (" + cfg.ip + ":" + cfg.port + ")", "ok");
+      setHeader("đã kết nối", "ok");
+      mObs.textContent = "Đã kết nối";
+      mObs.className = "v ok";
+      switchScreen("dash");
+      sourceNameLabel.textContent = cfg.source;
+      btnConnect.disabled = false;
+      btnConnect.textContent = "Kết nối OBS";
+
+      // verify source exists
+      await verifySource();
+      startMonitor();
+    }catch(err){
+      state.connected = false;
+      state.connecting = false;
+      btnConnect.disabled = false;
+      btnConnect.textContent = "Kết nối OBS";
+      const msg = describeObsError(err);
+      log("Kết nối OBS thất bại: " + msg, "bad");
+      if(!fromReconnect){
+        setHeader("chưa kết nối", "");
+        showConfigErr(msg);
+      }else{
+        setHeader("mất kết nối, đang thử lại...", "bad");
+        scheduleReconnect();
+      }
+    }
+  }
+
+  function describeObsError(err){
+    if(!err) return "Lỗi không xác định.";
+    // obs-websocket-js v5 errors often have .code and .message
+    const code = err.code;
+    if(code === 4009 || /authentication/i.test(err.message||"")){
+      return "Sai password OBS WebSocket.";
+    }
+    if(/ECONNREFUSED|Failed to construct|WebSocket connection|failed/i.test(err.message||"") ){
+      return "Không thể kết nối tới " + cfg.ip + ":" + cfg.port + ". Kiểm tra IP/Port và OBS WebSocket server đã bật chưa.";
+    }
+    return err.message || String(err);
+  }
+
+  async function verifySource(){
+    try{
+      await obs.call("GetInputSettings", { inputName: cfg.source });
+      state.sourceFound = true;
+      log('Đã tìm thấy source "' + cfg.source + '".', "ok");
+      showDashErr("");
+    }catch(err){
+      state.sourceFound = false;
+      const msg = 'Không tìm thấy source "' + cfg.source + '" trong OBS. Kiểm tra lại tên source (phân biệt hoa/thường).';
+      log(msg, "bad");
+      showDashErr(msg);
+      setCamState("bad", "Source không tồn tại");
+    }
+  }
+
+  function scheduleReconnect(){
+    if(state.reconnectTimer) return; // avoid duplicate timers
+    if(state.manualDisconnect) return;
+    state.reconnectTimer = setTimeout(function(){
+      state.reconnectTimer = null;
+      if(state.manualDisconnect) return;
+      log("Đang thử kết nối lại OBS WebSocket...", "warn");
+      doConnect(true);
+    }, RECONNECT_DELAY_MS);
+  }
+
+  obs.on("ConnectionClosed", function(){
+    if(!state.connected && !state.connecting) return; // already handled
+    state.connected = false;
+    mObs.textContent = "Mất kết nối";
+    mObs.className = "v bad";
+    setHeader("mất kết nối OBS WebSocket", "bad");
+    setCamState("bad", "OBS WebSocket mất kết nối");
+    if(!state.manualDisconnect){
+      log("OBS WebSocket bị ngắt kết nối. Sẽ tự động thử kết nối lại...", "bad");
+      scheduleReconnect();
+    }
+  });
+
+  obs.on("ConnectionError", function(err){
+    log("Lỗi kết nối OBS WebSocket: " + (err && err.message ? err.message : "unknown"), "bad");
+  });
+
+  /* ---------------- monitor loop ---------------- */
+  function startMonitor(){
+    if(state.monitorTimer) clearInterval(state.monitorTimer);
+    state.monitorTimer = setInterval(runCheckSafe, CHECK_INTERVAL_MS);
+    runCheckSafe(); // immediate first check
+  }
+  function stopMonitor(){
+    if(state.monitorTimer){ clearInterval(state.monitorTimer); state.monitorTimer = null; }
+  }
+
+  function runCheckSafe(){
+    checkCamera().catch(function(e){
+      log("Lỗi không mong muốn khi kiểm tra camera: " + (e && e.message ? e.message : e), "bad");
+    });
+  }
+
+  // simple, fast string hash (djb2) — good enough for change-detection, not cryptographic
+  function hashString(str){
+    let h = 5381;
+    // sample every few chars for speed on long base64 strings
+    const step = str.length > 4000 ? 7 : 1;
+    for(let i=0;i<str.length;i+=step){
+      h = ((h << 5) + h) + str.charCodeAt(i);
+      h = h & 0xffffffff;
+    }
+    return h;
+  }
+
+  async function checkCamera(){
+    if(!state.connected || state.checkInFlight) return;
+    if(!cfg.source) return;
+    state.checkInFlight = true;
+    try{
+      // periodically re-verify source still exists (every check is fine; call is lightweight)
+      let settingsOk = true;
+      try{
+        await obs.call("GetInputSettings", { inputName: cfg.source });
+        if(!state.sourceFound){
+          state.sourceFound = true;
+          log('Source "' + cfg.source + '" đã xuất hiện lại trong OBS.', "ok");
+        }
+      }catch(err){
+        settingsOk = false;
+        if(state.sourceFound){
+          log('Source "' + cfg.source + '" không còn tồn tại trong OBS.', "bad");
+        }
+        state.sourceFound = false;
+      }
+
+      state.lastCheckAt = Date.now();
+      mLastCheck.textContent = fmtTime(state.lastCheckAt);
+
+      if(!settingsOk){
+        setCamState("bad", "Source không tồn tại");
+        showDashErr('Source "' + cfg.source + '" không tồn tại trong OBS.');
+        maybeAutoReload("source-missing-cannot-reload"); // will just skip since we can't reload a nonexistent source
+        return;
+      }
+
+      // try to get a screenshot to (a) confirm the source is renderable, (b) detect frozen frame
+      let shot;
+      try{
+        shot = await obs.call("GetSourceScreenshot", {
+          sourceName: cfg.source,
+          imageFormat: "jpg",
+          imageWidth: 160,
+          imageHeight: 90,
+          imageCompressionQuality: 40
+        });
+      }catch(err){
+        // GetSourceScreenshot can fail if the source produces no video (e.g. camera disconnected)
+        setCamState("bad", "Không lấy được hình ảnh từ source (có thể camera đã ngắt kết nối)");
+        log('Không lấy được ảnh chụp từ source "' + cfg.source + '": ' + (err && err.message ? err.message : err), "bad");
+        maybeAutoReload("screenshot-failed");
+        return;
+      }
+
+      const dataUri = shot && shot.imageData ? shot.imageData : "";
+      if(!dataUri){
+        setCamState("bad", "Source không trả về hình ảnh");
+        maybeAutoReload("empty-image");
+        return;
+      }
+
+      const h = hashString(dataUri);
+      const now = Date.now();
+      if(state.lastImageHash === null){
+        state.lastImageHash = h;
+        state.lastImageChangeAt = now;
+        setCamState("ok", "Đang giám sát (thu thập dữ liệu ban đầu)");
+      }else if(h !== state.lastImageHash){
+        state.lastImageHash = h;
+        state.lastImageChangeAt = now;
+        setCamState("ok", "Bình thường");
+      }else{
+        const staleMs = now - state.lastImageChangeAt;
+        const freezeLimitMs = (cfg.freezeTimeoutSec || 12) * 1000;
+        if(staleMs >= freezeLimitMs){
+          setCamState("warn", "Có thể bị đơ (hình không đổi ~" + Math.round(staleMs/1000) + "s)");
+          log('Camera "' + cfg.source + '" có thể bị đơ: hình ảnh không thay đổi trong ' + Math.round(staleMs/1000) + 's.', "warn");
+          maybeAutoReload("frozen");
+        }else{
+          setCamState("ok", "Bình thường");
+        }
+      }
+    } finally {
+      state.checkInFlight = false;
+    }
+  }
+
+  /* ---------------- reload logic ---------------- */
+  async function maybeAutoReload(reason){
+    if(!chkAutoReload.checked) return;
+    if(reason === "source-missing-cannot-reload") return; // nothing to reload
+    const now = Date.now();
+    const cooldownMs = (cfg.reloadCooldownSec || 20) * 1000;
+    if(now - state.lastReloadAt < cooldownMs){
+      return; // still cooling down, don't spam
+    }
+    await doReload(reason);
+  }
+
+  async function doReload(reason){
+    if(!state.connected){ showDashErr("Chưa kết nối OBS."); return; }
+    if(!cfg.source){ return; }
+
+    setCamState("reloading", "Đang reload source...");
+    log('Bắt đầu reload source "' + cfg.source + '" (lý do: ' + (reason||"thủ công") + ')...', "warn");
+
+    try{
+      const found = await locateSceneItem();
+      if(!found){
+        log('Không tìm thấy source "' + cfg.source + '" trong scene nào để toggle. Không thể reload tự động bằng cách này.', "bad");
+        showDashErr('Không tìm thấy source trong scene hiện có — không thể tự động reload. Hãy đặt source vào một scene, hoặc reload thủ công trong OBS.');
+        setCamState("bad", "Không thể reload tự động (source không nằm trong scene)");
+        return;
+      }
+
+      await obs.call("SetSceneItemEnabled", {
+        sceneName: state.sourceSceneName,
+        sceneItemId: state.sourceSceneItemId,
+        sceneItemEnabled: false
+      });
+      await sleep(900);
+      await obs.call("SetSceneItemEnabled", {
+        sceneName: state.sourceSceneName,
+        sceneItemId: state.sourceSceneItemId,
+        sceneItemEnabled: true
+      });
+
+      state.lastReloadAt = Date.now();
+      state.reloadCount += 1;
+      mLastReload.textContent = fmtTime(state.lastReloadAt);
+      mReloadCount.textContent = String(state.reloadCount);
+      log('Reload source "' + cfg.source + '" thành công (lần ' + state.reloadCount + ').', "ok");
+
+      // give the source a moment to reinitialize before resuming freeze baseline
+      await sleep(RELOAD_SETTLE_MS);
+      state.lastImageHash = null; // reset baseline so we don't immediately re-flag as frozen
+      state.lastImageChangeAt = Date.now();
+      setCamState("ok", "Vừa reload xong, đang giám sát lại");
+    }catch(err){
+      const msg = err && err.message ? err.message : String(err);
+      log('Reload source thất bại: ' + msg, "bad");
+      showDashErr("Reload thất bại: " + msg);
+      setCamState("bad", "Reload thất bại");
+    }
+  }
+
+  async function locateSceneItem(){
+    // try current program scene first, then scan all scenes
+    try{
+      const cur = await obs.call("GetCurrentProgramScene");
+      const sceneName = cur.currentProgramSceneName || cur.sceneName;
+      const id = await tryGetSceneItemId(sceneName);
+      if(id !== null){
+        state.sourceSceneName = sceneName;
+        state.sourceSceneItemId = id;
+        return true;
+      }
+    }catch(e){ /* ignore, fall through to scan */ }
+
+    try{
+      const list = await obs.call("GetSceneList");
+      const scenes = list.scenes || [];
+      for(const s of scenes){
+        const name = s.sceneName;
+        const id = await tryGetSceneItemId(name);
+        if(id !== null){
+          state.sourceSceneName = name;
+          state.sourceSceneItemId = id;
+          return true;
+        }
+      }
+    }catch(e){ /* ignore */ }
+
+    return false;
+  }
+
+  async function tryGetSceneItemId(sceneName){
+    try{
+      const res = await obs.call("GetSceneItemId", { sceneName: sceneName, sourceName: cfg.source });
+      return (typeof res.sceneItemId === "number") ? res.sceneItemId : null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  /* ---------------- disconnect ---------------- */
+  async function doDisconnect(){
+    state.manualDisconnect = true;
+    stopMonitor();
+    if(state.reconnectTimer){ clearTimeout(state.reconnectTimer); state.reconnectTimer = null; }
+    try{ await obs.disconnect(); }catch(e){}
+    state.connected = false;
+    state.lastImageHash = null;
+    log("Đã ngắt kết nối OBS WebSocket theo yêu cầu.", "");
+    setHeader("chưa kết nối", "");
+    switchScreen("config");
+  }
+
+  /* ---------------- form wiring ---------------- */
+  btnConnect.addEventListener("click", function(){
+    cfg.ip = cfgIp.value.trim();
+    cfg.port = parseInt(cfgPort.value, 10) || 4455;
+    cfg.password = cfgPass.value; // stays local only
+    cfg.source = cfgSource.value.trim();
+    saveCfg(cfg);
+    fillSettingsForm();
+    doConnect(false);
+  });
+
+  btnCheckNow.addEventListener("click", function(){
+    showDashErr("");
+    runCheckSafe();
+  });
+
+  btnReloadNow.addEventListener("click", function(){
+    doReload("thủ công");
+  });
+
+  btnDisconnect.addEventListener("click", function(){
+    doDisconnect();
+  });
+
+  btnSaveSettings.addEventListener("click", function(){
+    const newIp = setIp.value.trim();
+    const newPort = parseInt(setPort.value, 10) || 4455;
+    const newPass = setPass.value;
+    const newSource = setSource.value.trim();
+    const newFreeze = Math.max(5, parseInt(setFreeze.value,10) || 12);
+    const newCooldown = Math.max(10, parseInt(setCooldown.value,10) || 20);
+
+    const sourceChanged = newSource !== cfg.source;
+
+    cfg.ip = newIp; cfg.port = newPort; cfg.password = newPass; cfg.source = newSource;
+    cfg.freezeTimeoutSec = newFreeze; cfg.reloadCooldownSec = newCooldown;
+    saveCfg(cfg);
+    log("Đã lưu cài đặt.", "");
+    sourceNameLabel.textContent = cfg.source;
+
+    if(sourceChanged){
+      state.sourceSceneName = null;
+      state.sourceSceneItemId = null;
+      state.lastImageHash = null;
+      if(state.connected) verifySource();
+    }
+    $("settingsDetails").open = false;
+  });
+
+  btnClearConfig.addEventListener("click", function(){
+    if(!confirm("Xóa toàn bộ cấu hình đã lưu (IP, port, password, tên source)?")) return;
+    clearCfg();
+    cfg = Object.assign({}, defaultCfg);
+    fillConfigForm();
+    fillSettingsForm();
+    log("Đã xóa cấu hình đã lưu.", "");
+  });
+
+  chkAutoReload.addEventListener("change", function(){
+    log("Tự động reload: " + (chkAutoReload.checked ? "BẬT" : "TẮT"), "");
+  });
+
+  /* ---------------- init ---------------- */
+  function init(){
+    fillConfigForm();
+    fillSettingsForm();
+    chkAutoReload.checked = true;
+    if(cfg.ip && cfg.source){
+      log("Đã tìm thấy cấu hình đã lưu. Sẵn sàng kết nối.", "");
+    }
+    switchScreen("config");
+    setHeader("chưa kết nối", "");
+  }
+  init();
+
+})();
+</script>
+</body>
+        </html>

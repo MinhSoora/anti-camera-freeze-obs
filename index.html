@@ -26,25 +26,32 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
   body{min-height:100vh;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px;}
+  .wrap{max-width:780px;margin:0 auto;padding:20px 16px 60px;}
 
   header.top{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
-  header.top .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto;}
+  header.top .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto;transition:background .2s;}
   header.top h1{font-size:15px;letter-spacing:.02em;font-weight:600;margin:0;color:var(--text);}
   header.top .sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:14px;}
-  .card h2{font-size:13px;font-weight:600;margin:0 0 14px;color:var(--text);}
-  .card h2 span{color:var(--muted);font-weight:400;}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 4px;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .card h2 span.tag{font-size:10.5px;font-weight:600;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;}
+  .card .sub{font-size:12px;color:var(--muted);margin:0 0 14px;}
 
-  label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;}
+  fieldset{border:0;margin:0;padding:0;}
+  legend{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;padding:0;}
+  legend:first-of-type{margin-top:0;}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 6px;}
   label:first-child{margin-top:0;}
   input[type=text],input[type=password],input[type=number]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
     border-radius:7px;padding:10px 11px;font-size:14px;font-family:var(--mono);
   }
   input:focus{outline:none;border-color:var(--accent);}
-  .row2{display:grid;grid-template-columns:1fr 110px;gap:12px;}
+  input:disabled{opacity:.55;cursor:not-allowed;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
   .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
 
   button{
@@ -52,25 +59,24 @@
     border-radius:7px;border:1px solid var(--line);padding:10px 16px;
     background:var(--panel-2);color:var(--text);transition:border-color .15s,background .15s;
   }
-  button:hover{border-color:#3a4353;}
-  button:disabled{opacity:.45;cursor:not-allowed;}
+  button:hover:not(:disabled){border-color:#3a4353;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
   button.primary{background:var(--accent);border-color:var(--accent);color:#08131a;}
-  button.primary:hover{filter:brightness(1.08);}
+  button.primary:hover:not(:disabled){filter:brightness(1.08);}
   button.danger{color:var(--bad);}
-  button.danger:hover{border-color:var(--bad);}
-  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+  button.danger:hover:not(:disabled){border-color:var(--bad);}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
 
   .err{background:var(--bad-dim);border:1px solid #6b2c28;color:#ffb3af;padding:10px 12px;border-radius:7px;font-size:12.5px;margin-top:12px;display:none;line-height:1.5;}
   .err.show{display:block;}
 
-  /* status grid */
-  .statusHero{display:flex;align-items:center;gap:16px;padding:6px 4px 18px;}
+  .statusHero{display:flex;align-items:center;gap:16px;padding:2px 2px 18px;}
   .statusHero .badge{
     width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;
     font-size:24px;flex:0 0 auto;
   }
   .statusHero .info .label{font-size:12px;color:var(--muted);margin-bottom:3px;}
-  .statusHero .info .value{font-size:18px;font-weight:700;}
+  .statusHero .info .value{font-size:17px;font-weight:700;}
 
   .badge.ok{background:var(--ok-dim);color:var(--ok);}
   .badge.warn{background:var(--warn-dim);color:var(--warn);}
@@ -79,7 +85,7 @@
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 13px;}
-  .metric .k{font-size:11px;color:var(--muted);text-transform:none;margin-bottom:5px;}
+  .metric .k{font-size:11px;color:var(--muted);margin-bottom:5px;}
   .metric .v{font-size:13.5px;font-family:var(--mono);word-break:break-word;}
   .metric .v.ok{color:var(--ok);}
   .metric .v.warn{color:var(--warn);}
@@ -96,14 +102,6 @@
   .log .l.bad{color:var(--bad);}
   .log .l.ok{color:var(--ok);}
 
-  details{margin-top:0;}
-  summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none;user-select:none;}
-  summary::-webkit-details-marker{display:none;}
-  summary:before{content:"▸ ";}
-  details[open] summary:before{content:"▾ ";}
-
-  .screen{display:none;}
-  .screen.active{display:block;}
   .footNote{font-size:11px;color:#4a5468;text-align:center;margin-top:18px;line-height:1.6;}
   a{color:var(--accent);}
 </style>
@@ -117,11 +115,13 @@
     <div class="sub" id="headerSub">chưa kết nối</div>
   </header>
 
-  <!-- SCREEN 1: CONFIG / CONNECT -->
-  <div class="screen" id="screenConfig">
-    <div class="card">
-      <h2>Kết nối OBS WebSocket <span>v5</span></h2>
+  <!-- CONNECTION + MONITOR SETTINGS -->
+  <div class="card">
+    <h2>Kết nối &amp; cài đặt giám sát <span class="tag">OBS WebSocket v5</span></h2>
+    <p class="sub">Sửa thông số bất cứ lúc nào — bấm "Lưu cài đặt" để ghi vào trình duyệt, hoặc "Kết nối OBS" để lưu và kết nối ngay.</p>
 
+    <fieldset>
+      <legend>Kết nối OBS</legend>
       <label for="cfgIp">Địa chỉ IP OBS</label>
       <input type="text" id="cfgIp" placeholder="192.168.1.100 hoặc localhost">
 
@@ -131,124 +131,95 @@
           <input type="number" id="cfgPort" placeholder="4455">
         </div>
         <div>
-          <label for="cfgSecure">Kết nối</label>
-          <input type="text" id="cfgSecureDisplay" value="ws://" disabled style="text-align:center;opacity:.6">
+          <label for="cfgPass">Password OBS WebSocket</label>
+          <input type="password" id="cfgPass" placeholder="để trống nếu không đặt" autocomplete="off">
         </div>
       </div>
-
-      <label for="cfgPass">Password OBS WebSocket</label>
-      <input type="password" id="cfgPass" placeholder="•••••••• (để trống nếu không đặt password)" autocomplete="off">
 
       <label for="cfgSource">Tên Source / Overlay camera trong OBS</label>
       <input type="text" id="cfgSource" placeholder='Ví dụ: "Video Camera Capture"'>
-      <div class="hint">Tên phải trùng chính xác với tên source (Input) trong OBS, không phân biệt hoa/thường không được đảm bảo.</div>
+      <div class="hint">Tên phải trùng chính xác với tên source (Input) trong OBS.</div>
+    </fieldset>
 
-      <div class="btnrow">
-        <button class="primary" id="btnConnect">Kết nối OBS</button>
+    <fieldset>
+      <legend>Thông số giám sát</legend>
+      <div class="row3">
+        <div>
+          <label for="cfgInterval">Chu kỳ kiểm tra (giây)</label>
+          <input type="number" id="cfgInterval" min="2" max="120">
+        </div>
+        <div>
+          <label for="cfgFreeze">Timeout phát hiện đơ (giây)</label>
+          <input type="number" id="cfgFreeze" min="5" max="300">
+        </div>
+        <div>
+          <label for="cfgCooldown">Cooldown reload (giây)</label>
+          <input type="number" id="cfgCooldown" min="10" max="600">
+        </div>
       </div>
-      <div class="err" id="configErr"></div>
-    </div>
+      <div class="hint">Chu kỳ kiểm tra càng ngắn thì phát hiện lỗi càng nhanh nhưng gọi OBS WebSocket nhiều hơn. Mặc định 5s / 12s / 20s.</div>
+    </fieldset>
 
-    <div class="card">
-      <h2>Ghi chú</h2>
-      <div class="hint">
-        • Toàn bộ IP, port, password và tên source chỉ được lưu trong <b>localStorage</b> của trình duyệt này, không gửi đi đâu khác.<br>
-        • Port mặc định của OBS WebSocket v5 là <b>4455</b>.<br>
-        • OBS WebSocket không cung cấp trực tiếp trạng thái "camera bị đơ". App dùng ảnh chụp source (GetSourceScreenshot) để so sánh thay đổi hình ảnh theo thời gian — đây là tín hiệu suy luận, không phải phát hiện 100% chính xác.
-      </div>
+    <div class="btnrow">
+      <button class="primary" id="btnConnect">Kết nối OBS</button>
+      <button class="danger" id="btnDisconnect" disabled>Ngắt kết nối</button>
+      <button id="btnSaveSettings">Lưu cài đặt</button>
+      <button class="danger" id="btnClearConfig">Xóa cấu hình đã lưu</button>
     </div>
+    <div class="err" id="configErr"></div>
   </div>
 
-  <!-- SCREEN 2: DASHBOARD -->
-  <div class="screen" id="screenDash">
-
-    <div class="card">
-      <div class="statusHero">
-        <div class="badge idle" id="camBadge">?</div>
-        <div class="info">
-          <div class="label">Trạng thái camera — <span id="sourceNameLabel">-</span></div>
-          <div class="value" id="camStatusText">Chưa kiểm tra</div>
-        </div>
+  <!-- DASHBOARD / STATUS -->
+  <div class="card">
+    <h2>Trạng thái</h2>
+    <div class="statusHero">
+      <div class="badge idle" id="camBadge">?</div>
+      <div class="info">
+        <div class="label">Camera — <span id="sourceNameLabel">(chưa cấu hình)</span></div>
+        <div class="value" id="camStatusText">Chưa kết nối</div>
       </div>
-
-      <div class="grid">
-        <div class="metric">
-          <div class="k">OBS WebSocket</div>
-          <div class="v ok" id="mObs">Đã kết nối</div>
-        </div>
-        <div class="metric">
-          <div class="k">Kiểm tra lần cuối</div>
-          <div class="v" id="mLastCheck">-</div>
-        </div>
-        <div class="metric">
-          <div class="k">Reload gần nhất</div>
-          <div class="v" id="mLastReload">chưa reload</div>
-        </div>
-        <div class="metric">
-          <div class="k">Số lần reload</div>
-          <div class="v" id="mReloadCount">0</div>
-        </div>
-      </div>
-
-      <label class="checkline">
-        <input type="checkbox" id="chkAutoReload">
-        Tự động reload khi phát hiện lỗi camera
-      </label>
-
-      <div class="btnrow">
-        <button id="btnCheckNow">Kiểm tra ngay</button>
-        <button id="btnReloadNow">Reload Camera</button>
-        <button class="danger" id="btnDisconnect">Ngắt kết nối</button>
-      </div>
-      <div class="err" id="dashErr"></div>
     </div>
 
-    <div class="card">
-      <h2>Log sự kiện</h2>
-      <div class="log" id="logBox"></div>
+    <div class="grid">
+      <div class="metric">
+        <div class="k">OBS WebSocket</div>
+        <div class="v" id="mObs">Chưa kết nối</div>
+      </div>
+      <div class="metric">
+        <div class="k">Kiểm tra lần cuối</div>
+        <div class="v" id="mLastCheck">-</div>
+      </div>
+      <div class="metric">
+        <div class="k">Reload gần nhất</div>
+        <div class="v" id="mLastReload">chưa reload</div>
+      </div>
+      <div class="metric">
+        <div class="k">Số lần reload</div>
+        <div class="v" id="mReloadCount">0</div>
+      </div>
     </div>
 
-    <div class="card">
-      <details id="settingsDetails">
-        <summary>Cài đặt</summary>
-        <div style="margin-top:14px;">
-          <label for="setIp">IP OBS</label>
-          <input type="text" id="setIp">
-          <div class="row2">
-            <div>
-              <label for="setPort">Port</label>
-              <input type="number" id="setPort">
-            </div>
-            <div></div>
-          </div>
-          <label for="setPass">Password</label>
-          <input type="password" id="setPass" autocomplete="off">
-          <label for="setSource">Tên source camera</label>
-          <input type="text" id="setSource">
-          <div class="row2">
-            <div>
-              <label for="setFreeze">Timeout phát hiện đơ (giây)</label>
-              <input type="number" id="setFreeze" min="5" max="120">
-            </div>
-            <div>
-              <label for="setCooldown">Cooldown reload (giây)</label>
-              <input type="number" id="setCooldown" min="10" max="600">
-            </div>
-          </div>
-          <div class="btnrow">
-            <button class="primary" id="btnSaveSettings">Lưu cài đặt</button>
-            <button class="danger" id="btnClearConfig">Xóa cấu hình đã lưu</button>
-          </div>
-          <div class="hint" style="margin-top:12px;">
-            Thay đổi IP/Port/Password/tên source sẽ áp dụng cho lần kết nối tiếp theo (bấm "Ngắt kết nối" rồi kết nối lại để dùng cấu hình mới ngay).
-          </div>
-        </div>
-      </details>
+    <label class="checkline">
+      <input type="checkbox" id="chkAutoReload">
+      Tự động reload khi phát hiện lỗi camera
+    </label>
+
+    <div class="btnrow">
+      <button id="btnCheckNow" disabled>Kiểm tra ngay</button>
+      <button id="btnReloadNow" disabled>Reload Camera</button>
     </div>
+    <div class="err" id="dashErr"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <h2>Log sự kiện</h2>
+    <div class="log" id="logBox"></div>
   </div>
 
   <div class="footNote">
-    Dữ liệu cấu hình chỉ lưu cục bộ trên trình duyệt (localStorage). Không có server trung gian nào được sử dụng.
+    IP, port, password và tên source chỉ lưu cục bộ (localStorage) trên trình duyệt này, không gửi đi đâu khác.<br>
+    Phát hiện "đơ" dựa trên so sánh ảnh chụp source (GetSourceScreenshot) theo thời gian — là tín hiệu suy luận, không phải phát hiện pixel-level tuyệt đối.
   </div>
 </div>
 
@@ -257,21 +228,23 @@
   "use strict";
 
   /* ---------------- storage ---------------- */
-  const STORAGE_KEY = "obsCamMonitorConfig_v1";
-  const defaultCfg = { ip:"", port:4455, password:"", source:"", freezeTimeoutSec:12, reloadCooldownSec:20 };
+  const STORAGE_KEY = "obsCamMonitorConfig_v2";
+  const defaultCfg = {
+    ip:"", port:4455, password:"", source:"",
+    checkIntervalSec:5, freezeTimeoutSec:12, reloadCooldownSec:20
+  };
 
   function loadCfg(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
       if(!raw) return Object.assign({}, defaultCfg);
-      const parsed = JSON.parse(raw);
-      return Object.assign({}, defaultCfg, parsed);
+      return Object.assign({}, defaultCfg, JSON.parse(raw));
     }catch(e){
       return Object.assign({}, defaultCfg);
     }
   }
-  function saveCfg(cfg){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); }catch(e){ /* storage may be unavailable */ }
+  function saveCfg(c){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); }catch(e){}
   }
   function clearCfg(){
     try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
@@ -282,41 +255,27 @@
   /* ---------------- dom refs ---------------- */
   const $ = (id) => document.getElementById(id);
 
-  const screenConfig = $("screenConfig");
-  const screenDash = $("screenDash");
-  const headerDot = $("headerDot");
-  const headerSub = $("headerSub");
-
+  const headerDot = $("headerDot"), headerSub = $("headerSub");
   const cfgIp = $("cfgIp"), cfgPort = $("cfgPort"), cfgPass = $("cfgPass"), cfgSource = $("cfgSource");
+  const cfgInterval = $("cfgInterval"), cfgFreeze = $("cfgFreeze"), cfgCooldown = $("cfgCooldown");
   const configErr = $("configErr");
-  const btnConnect = $("btnConnect");
+  const btnConnect = $("btnConnect"), btnDisconnect = $("btnDisconnect");
+  const btnSaveSettings = $("btnSaveSettings"), btnClearConfig = $("btnClearConfig");
 
   const sourceNameLabel = $("sourceNameLabel");
-  const camBadge = $("camBadge");
-  const camStatusText = $("camStatusText");
-  const mObs = $("mObs");
-  const mLastCheck = $("mLastCheck");
-  const mLastReload = $("mLastReload");
-  const mReloadCount = $("mReloadCount");
+  const camBadge = $("camBadge"), camStatusText = $("camStatusText");
+  const mObs = $("mObs"), mLastCheck = $("mLastCheck"), mLastReload = $("mLastReload"), mReloadCount = $("mReloadCount");
   const chkAutoReload = $("chkAutoReload");
-  const btnCheckNow = $("btnCheckNow");
-  const btnReloadNow = $("btnReloadNow");
-  const btnDisconnect = $("btnDisconnect");
+  const btnCheckNow = $("btnCheckNow"), btnReloadNow = $("btnReloadNow");
   const dashErr = $("dashErr");
   const logBox = $("logBox");
-
-  const setIp = $("setIp"), setPort = $("setPort"), setPass = $("setPass"), setSource = $("setSource");
-  const setFreeze = $("setFreeze"), setCooldown = $("setCooldown");
-  const btnSaveSettings = $("btnSaveSettings");
-  const btnClearConfig = $("btnClearConfig");
 
   /* ---------------- log ---------------- */
   const MAX_LOGS = 50;
   let logs = [];
   function log(msg, level){
     level = level || "";
-    const now = new Date();
-    const t = now.toLocaleTimeString('vi-VN', {hour12:false});
+    const t = new Date().toLocaleTimeString('vi-VN', {hour12:false});
     logs.push({t, msg, level});
     if(logs.length > MAX_LOGS) logs.shift();
     renderLogs();
@@ -349,17 +308,17 @@
     lastCheckAt:0,
     lastReloadAt:0,
     reloadCount:0,
-    camState:"idle", // idle | ok | warn | bad | reloading
+    camState:"idle",
     monitorTimer:null,
+    monitorIntervalMs:5000,
     reconnectTimer:null,
     checkInFlight:false
   };
 
-  const CHECK_INTERVAL_MS = 5000;
   const RECONNECT_DELAY_MS = 6000;
-  const RELOAD_SETTLE_MS = 4000; // after reload, ignore freeze baseline briefly
+  const RELOAD_SETTLE_MS = 4000;
 
-  /* ---------------- header/status helpers ---------------- */
+  /* ---------------- ui helpers ---------------- */
   function setHeader(text, colorClass){
     headerSub.textContent = text;
     headerDot.style.background =
@@ -393,43 +352,53 @@
     dashErr.classList.toggle("show", !!msg);
     if(msg){ setTimeout(function(){ if(dashErr.textContent===msg) showDashErr(""); }, 8000); }
   }
-
   function fmtTime(ts){
     if(!ts) return "-";
     return new Date(ts).toLocaleTimeString('vi-VN', {hour12:false});
   }
 
-  function switchScreen(which){
-    screenConfig.classList.toggle("active", which === "config");
-    screenDash.classList.toggle("active", which === "dash");
+  function setUiConnectedState(connected){
+    btnConnect.disabled = connected || state.connecting;
+    btnDisconnect.disabled = !connected;
+    btnCheckNow.disabled = !connected;
+    btnReloadNow.disabled = !connected;
   }
 
-  /* ---------------- populate forms from cfg ---------------- */
-  function fillConfigForm(){
+  /* ---------------- populate form from cfg ---------------- */
+  function fillForm(){
     cfgIp.value = cfg.ip || "";
     cfgPort.value = cfg.port || 4455;
     cfgPass.value = cfg.password || "";
     cfgSource.value = cfg.source || "";
+    cfgInterval.value = cfg.checkIntervalSec || 5;
+    cfgFreeze.value = cfg.freezeTimeoutSec || 12;
+    cfgCooldown.value = cfg.reloadCooldownSec || 20;
+    sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
   }
-  function fillSettingsForm(){
-    setIp.value = cfg.ip || "";
-    setPort.value = cfg.port || 4455;
-    setPass.value = cfg.password || "";
-    setSource.value = cfg.source || "";
-    setFreeze.value = cfg.freezeTimeoutSec || 12;
-    setCooldown.value = cfg.reloadCooldownSec || 20;
+
+  function readFormIntoCfg(){
+    cfg.ip = cfgIp.value.trim();
+    cfg.port = parseInt(cfgPort.value, 10) || 4455;
+    cfg.password = cfgPass.value;
+    cfg.source = cfgSource.value.trim();
+    cfg.checkIntervalSec = Math.max(2, parseInt(cfgInterval.value, 10) || 5);
+    cfg.freezeTimeoutSec = Math.max(5, parseInt(cfgFreeze.value, 10) || 12);
+    cfg.reloadCooldownSec = Math.max(10, parseInt(cfgCooldown.value, 10) || 20);
   }
 
   /* ---------------- connect flow ---------------- */
   async function doConnect(fromReconnect){
     if(state.connecting) return;
+    if(!fromReconnect) readFormIntoCfg();
     if(!cfg.ip){ showConfigErr("Vui lòng nhập IP OBS."); return; }
     if(!cfg.port){ showConfigErr("Vui lòng nhập Port."); return; }
     if(!cfg.source){ showConfigErr("Vui lòng nhập tên Source camera."); return; }
+    saveCfg(cfg);
+    sourceNameLabel.textContent = cfg.source;
 
     state.connecting = true;
     if(!fromReconnect) showConfigErr("");
-    btnConnect.disabled = true;
+    setUiConnectedState(false);
     btnConnect.textContent = "Đang kết nối...";
     setHeader("đang kết nối...", "warn");
 
@@ -444,19 +413,16 @@
       setHeader("đã kết nối", "ok");
       mObs.textContent = "Đã kết nối";
       mObs.className = "v ok";
-      switchScreen("dash");
-      sourceNameLabel.textContent = cfg.source;
-      btnConnect.disabled = false;
       btnConnect.textContent = "Kết nối OBS";
+      setUiConnectedState(true);
 
-      // verify source exists
       await verifySource();
       startMonitor();
     }catch(err){
       state.connected = false;
       state.connecting = false;
-      btnConnect.disabled = false;
       btnConnect.textContent = "Kết nối OBS";
+      setUiConnectedState(false);
       const msg = describeObsError(err);
       log("Kết nối OBS thất bại: " + msg, "bad");
       if(!fromReconnect){
@@ -471,7 +437,6 @@
 
   function describeObsError(err){
     if(!err) return "Lỗi không xác định.";
-    // obs-websocket-js v5 errors often have .code and .message
     const code = err.code;
     if(code === 4009 || /authentication/i.test(err.message||"")){
       return "Sai password OBS WebSocket.";
@@ -498,7 +463,7 @@
   }
 
   function scheduleReconnect(){
-    if(state.reconnectTimer) return; // avoid duplicate timers
+    if(state.reconnectTimer) return;
     if(state.manualDisconnect) return;
     state.reconnectTimer = setTimeout(function(){
       state.reconnectTimer = null;
@@ -509,12 +474,13 @@
   }
 
   obs.on("ConnectionClosed", function(){
-    if(!state.connected && !state.connecting) return; // already handled
+    if(!state.connected && !state.connecting) return;
     state.connected = false;
     mObs.textContent = "Mất kết nối";
     mObs.className = "v bad";
     setHeader("mất kết nối OBS WebSocket", "bad");
     setCamState("bad", "OBS WebSocket mất kết nối");
+    setUiConnectedState(false);
     if(!state.manualDisconnect){
       log("OBS WebSocket bị ngắt kết nối. Sẽ tự động thử kết nối lại...", "bad");
       scheduleReconnect();
@@ -528,11 +494,19 @@
   /* ---------------- monitor loop ---------------- */
   function startMonitor(){
     if(state.monitorTimer) clearInterval(state.monitorTimer);
-    state.monitorTimer = setInterval(runCheckSafe, CHECK_INTERVAL_MS);
-    runCheckSafe(); // immediate first check
+    state.monitorIntervalMs = (cfg.checkIntervalSec || 5) * 1000;
+    state.monitorTimer = setInterval(runCheckSafe, state.monitorIntervalMs);
+    runCheckSafe();
   }
   function stopMonitor(){
     if(state.monitorTimer){ clearInterval(state.monitorTimer); state.monitorTimer = null; }
+  }
+  function restartMonitorIfIntervalChanged(){
+    const newMs = (cfg.checkIntervalSec || 5) * 1000;
+    if(state.connected && newMs !== state.monitorIntervalMs){
+      log("Cập nhật chu kỳ kiểm tra: " + (newMs/1000) + "s.", "");
+      startMonitor();
+    }
   }
 
   function runCheckSafe(){
@@ -541,10 +515,8 @@
     });
   }
 
-  // simple, fast string hash (djb2) — good enough for change-detection, not cryptographic
   function hashString(str){
     let h = 5381;
-    // sample every few chars for speed on long base64 strings
     const step = str.length > 4000 ? 7 : 1;
     for(let i=0;i<str.length;i+=step){
       h = ((h << 5) + h) + str.charCodeAt(i);
@@ -558,7 +530,6 @@
     if(!cfg.source) return;
     state.checkInFlight = true;
     try{
-      // periodically re-verify source still exists (every check is fine; call is lightweight)
       let settingsOk = true;
       try{
         await obs.call("GetInputSettings", { inputName: cfg.source });
@@ -580,11 +551,9 @@
       if(!settingsOk){
         setCamState("bad", "Source không tồn tại");
         showDashErr('Source "' + cfg.source + '" không tồn tại trong OBS.');
-        maybeAutoReload("source-missing-cannot-reload"); // will just skip since we can't reload a nonexistent source
         return;
       }
 
-      // try to get a screenshot to (a) confirm the source is renderable, (b) detect frozen frame
       let shot;
       try{
         shot = await obs.call("GetSourceScreenshot", {
@@ -595,17 +564,16 @@
           imageCompressionQuality: 40
         });
       }catch(err){
-        // GetSourceScreenshot can fail if the source produces no video (e.g. camera disconnected)
         setCamState("bad", "Không lấy được hình ảnh từ source (có thể camera đã ngắt kết nối)");
         log('Không lấy được ảnh chụp từ source "' + cfg.source + '": ' + (err && err.message ? err.message : err), "bad");
-        maybeAutoReload("screenshot-failed");
+        await maybeAutoReload("screenshot-failed");
         return;
       }
 
       const dataUri = shot && shot.imageData ? shot.imageData : "";
       if(!dataUri){
         setCamState("bad", "Source không trả về hình ảnh");
-        maybeAutoReload("empty-image");
+        await maybeAutoReload("empty-image");
         return;
       }
 
@@ -625,7 +593,7 @@
         if(staleMs >= freezeLimitMs){
           setCamState("warn", "Có thể bị đơ (hình không đổi ~" + Math.round(staleMs/1000) + "s)");
           log('Camera "' + cfg.source + '" có thể bị đơ: hình ảnh không thay đổi trong ' + Math.round(staleMs/1000) + 's.', "warn");
-          maybeAutoReload("frozen");
+          await maybeAutoReload("frozen");
         }else{
           setCamState("ok", "Bình thường");
         }
@@ -638,12 +606,9 @@
   /* ---------------- reload logic ---------------- */
   async function maybeAutoReload(reason){
     if(!chkAutoReload.checked) return;
-    if(reason === "source-missing-cannot-reload") return; // nothing to reload
     const now = Date.now();
     const cooldownMs = (cfg.reloadCooldownSec || 20) * 1000;
-    if(now - state.lastReloadAt < cooldownMs){
-      return; // still cooling down, don't spam
-    }
+    if(now - state.lastReloadAt < cooldownMs) return;
     await doReload(reason);
   }
 
@@ -681,9 +646,8 @@
       mReloadCount.textContent = String(state.reloadCount);
       log('Reload source "' + cfg.source + '" thành công (lần ' + state.reloadCount + ').', "ok");
 
-      // give the source a moment to reinitialize before resuming freeze baseline
       await sleep(RELOAD_SETTLE_MS);
-      state.lastImageHash = null; // reset baseline so we don't immediately re-flag as frozen
+      state.lastImageHash = null;
       state.lastImageChangeAt = Date.now();
       setCamState("ok", "Vừa reload xong, đang giám sát lại");
     }catch(err){
@@ -695,7 +659,6 @@
   }
 
   async function locateSceneItem(){
-    // try current program scene first, then scan all scenes
     try{
       const cur = await obs.call("GetCurrentProgramScene");
       const sceneName = cur.currentProgramSceneName || cur.sceneName;
@@ -705,7 +668,7 @@
         state.sourceSceneItemId = id;
         return true;
       }
-    }catch(e){ /* ignore, fall through to scan */ }
+    }catch(e){ /* fall through */ }
 
     try{
       const list = await obs.call("GetSceneList");
@@ -743,21 +706,18 @@
     try{ await obs.disconnect(); }catch(e){}
     state.connected = false;
     state.lastImageHash = null;
+    mObs.textContent = "Chưa kết nối";
+    mObs.className = "v";
+    setCamState("idle", "Chưa kết nối");
+    setUiConnectedState(false);
+    btnConnect.textContent = "Kết nối OBS";
     log("Đã ngắt kết nối OBS WebSocket theo yêu cầu.", "");
     setHeader("chưa kết nối", "");
-    switchScreen("config");
   }
 
-  /* ---------------- form wiring ---------------- */
-  btnConnect.addEventListener("click", function(){
-    cfg.ip = cfgIp.value.trim();
-    cfg.port = parseInt(cfgPort.value, 10) || 4455;
-    cfg.password = cfgPass.value; // stays local only
-    cfg.source = cfgSource.value.trim();
-    saveCfg(cfg);
-    fillSettingsForm();
-    doConnect(false);
-  });
+  /* ---------------- wiring ---------------- */
+  btnConnect.addEventListener("click", function(){ doConnect(false); });
+  btnDisconnect.addEventListener("click", function(){ doDisconnect(); });
 
   btnCheckNow.addEventListener("click", function(){
     showDashErr("");
@@ -768,41 +728,27 @@
     doReload("thủ công");
   });
 
-  btnDisconnect.addEventListener("click", function(){
-    doDisconnect();
-  });
-
   btnSaveSettings.addEventListener("click", function(){
-    const newIp = setIp.value.trim();
-    const newPort = parseInt(setPort.value, 10) || 4455;
-    const newPass = setPass.value;
-    const newSource = setSource.value.trim();
-    const newFreeze = Math.max(5, parseInt(setFreeze.value,10) || 12);
-    const newCooldown = Math.max(10, parseInt(setCooldown.value,10) || 20);
-
-    const sourceChanged = newSource !== cfg.source;
-
-    cfg.ip = newIp; cfg.port = newPort; cfg.password = newPass; cfg.source = newSource;
-    cfg.freezeTimeoutSec = newFreeze; cfg.reloadCooldownSec = newCooldown;
+    const oldSource = cfg.source;
+    readFormIntoCfg();
     saveCfg(cfg);
+    sourceNameLabel.textContent = cfg.source || "(chưa cấu hình)";
     log("Đã lưu cài đặt.", "");
-    sourceNameLabel.textContent = cfg.source;
 
-    if(sourceChanged){
+    if(cfg.source !== oldSource){
       state.sourceSceneName = null;
       state.sourceSceneItemId = null;
       state.lastImageHash = null;
       if(state.connected) verifySource();
     }
-    $("settingsDetails").open = false;
+    restartMonitorIfIntervalChanged();
   });
 
   btnClearConfig.addEventListener("click", function(){
-    if(!confirm("Xóa toàn bộ cấu hình đã lưu (IP, port, password, tên source)?")) return;
+    if(!confirm("Xóa toàn bộ cấu hình đã lưu (IP, port, password, tên source, thông số giám sát)?")) return;
     clearCfg();
     cfg = Object.assign({}, defaultCfg);
-    fillConfigForm();
-    fillSettingsForm();
+    fillForm();
     log("Đã xóa cấu hình đã lưu.", "");
   });
 
@@ -812,13 +758,15 @@
 
   /* ---------------- init ---------------- */
   function init(){
-    fillConfigForm();
-    fillSettingsForm();
+    fillForm();
     chkAutoReload.checked = true;
+    setUiConnectedState(false);
+    setCamState("idle", "Chưa kết nối");
     if(cfg.ip && cfg.source){
-      log("Đã tìm thấy cấu hình đã lưu. Sẵn sàng kết nối.", "");
+      log("Đã tải cấu hình đã lưu. Sẵn sàng kết nối.", "");
+    }else{
+      log("Chưa có cấu hình. Nhập thông tin OBS ở trên rồi bấm \"Kết nối OBS\".", "");
     }
-    switchScreen("config");
     setHeader("chưa kết nối", "");
   }
   init();
@@ -826,4 +774,4 @@
 })();
 </script>
 </body>
-        </html>
+</html>
